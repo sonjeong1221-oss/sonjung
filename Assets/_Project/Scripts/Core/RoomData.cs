@@ -21,6 +21,13 @@ namespace VirtualOffice.Core
         [Header("중첩 (예: 자료보관실 → operation)")]
         public string nestedInRoomId;
 
+        [Header("씬")]
+        public string sceneName;
+
+        [Header("텔레포트 스폰 지점 (허브/미니맵에서 이 방 클릭 시)")]
+        public Vector3 spawnPosition;
+        public float spawnYaw;
+
         [Header("표시")]
         public Color accentColor = Color.white;
 

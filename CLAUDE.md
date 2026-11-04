@@ -39,13 +39,19 @@ Windows용 1인칭 싱글 사용자 가상 오피스. 신규 담당자가 역할
 - 포토리얼한 가구·텍스처 등 3D 아트 에셋은 생성할 수 없다. 구조 검증은 프리미티브(큐브 등)로 하고,
   실제 아트는 Asset Store 구매 에셋 또는 사용자가 준비한 리소스를 입히는 방식으로 진행한다.
 
+## 핵심 흐름
+허브(평면도/미니맵)에서 방을 클릭 → 그 방으로 텔레포트 → 1인칭으로 둘러보며 비품에 "E"로
+상호작용 + 자유 질문하면 그 방의 업무·비품 정보로 답변. 걸어서 전체 복도를 가로지르는 구조가
+아니라는 점이 핵심 — 자세한 흐름은 `Documents/개발명세서.md` 4·5절 참고.
+
 ## 아키텍처 핵심
 `Assets/_Project/Scripts/Core/`
 - `GameManager` — 싱글턴, 현재 상태(Day 등) 보유, 부팅 시퀀스
-- `RoomData` (ScriptableObject) — 방 ID·치수·비품 리스트·일자별 업무 정의
-- `SceneLoader` — 방별 서브씬 Additive 로딩
+- `RoomData` (ScriptableObject) — 방 ID·치수·비품 리스트·일자별 업무·텔레포트 스폰 지점 정의
+- `SceneLoader` — 방별 서브씬 Additive 로딩 (허브→방 텔레포트의 기반)
 - `IInteractable` / `InteractionSystem` — 화면 중앙 Raycast 기반 1인칭 상호작용
 - `FirstPersonController` — CharacterController + 신규 Input System
 - `SaveSystem` — `Application.persistentDataPath`에 JSON으로 진행 상태 저장/복원
 
-데이터 모델과 전체 공간 구성(7개 방), 로드맵은 `Documents/개발명세서.md` 참고.
+Q&A 상호작용·미니맵·HUD는 아직 설계만 되어 있고 구현 전이다(`Documents/개발명세서.md` 5·10절).
+데이터 모델과 전체 공간 구성(7개 방), 비주얼 레퍼런스 스펙, 로드맵은 `Documents/개발명세서.md` 참고.
