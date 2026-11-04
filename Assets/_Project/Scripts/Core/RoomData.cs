@@ -32,7 +32,28 @@ namespace VirtualOffice.Core
         public Color accentColor = Color.white;
 
         public List<FurnitureEntry> furniture = new List<FurnitureEntry>();
+
+        [Header("심사 단계별 일자 업무 (기초조사·본심사는 별도 합숙, 수정본검토·견본검수는 각각 다른 시기)")]
+        public List<PhaseSchedule> schedules = new List<PhaseSchedule>();
+    }
+
+    [Serializable]
+    public class PhaseSchedule
+    {
+        public ReviewPhase phase;
         public List<DailyTask> tasksByDay = new List<DailyTask>();
+    }
+
+    /// 실제 사업계획서 Ⅷ장(검정심사 방법) 2·3·5·6절 기준 4단계.
+    /// 기초조사·본심사는 합숙 연수/재택조사(심사)/심의회 개최로 구성된 다단계 일정이고,
+    /// 수정본 검토·견본 검수는 연중 별도 시기(예: 6~7월, 8월)에 진행되는 사무 검토 성격이 강해
+    /// 같은 "7개 공간" 합숙 구조를 그대로 쓸지는 운영팀 확인이 필요하다(개발명세서 9·11절).
+    public enum ReviewPhase
+    {
+        BasicSurvey,      // 기초조사
+        MainReview,       // 본심사
+        RevisionReview,   // 수정본 검토
+        SampleInspection  // 견본 검수
     }
 
     [Serializable]

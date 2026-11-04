@@ -7,6 +7,7 @@ namespace VirtualOffice.Core
     [Serializable]
     public class SaveData
     {
+        public ReviewPhase currentPhase = ReviewPhase.BasicSurvey;
         public CampDay currentDay = CampDay.Setup1;
         public string[] completedTaskIds = Array.Empty<string>();
     }

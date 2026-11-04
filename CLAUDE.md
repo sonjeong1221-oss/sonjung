@@ -47,7 +47,8 @@ Windows용 1인칭 싱글 사용자 가상 오피스. 신규 담당자가 역할
 ## 아키텍처 핵심
 `Assets/_Project/Scripts/Core/`
 - `GameManager` — 싱글턴, 현재 상태(Day 등) 보유, 부팅 시퀀스
-- `RoomData` (ScriptableObject) — 방 ID·치수·비품 리스트·일자별 업무·텔레포트 스폰 지점 정의
+- `RoomData` (ScriptableObject) — 방 ID·치수·비품 리스트·심사 단계별 일자 업무(`schedules`)·텔레포트
+  스폰 지점 정의. 심사 단계(기초조사/본심사/수정본검토/견본검수)는 `ReviewPhase`.
 - `SceneLoader` — 방별 서브씬 Additive 로딩 (허브→방 텔레포트의 기반)
 - `IInteractable` / `InteractionSystem` — 화면 중앙 Raycast 기반 1인칭 상호작용
 - `FirstPersonController` — CharacterController + 신규 Input System
