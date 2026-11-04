@@ -1,0 +1,50 @@
+# ---- Unity generated / local-only ----
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Bb]uild/
+[Bb]uilds/
+[Ll]ogs/
+[Uu]ser[Ss]ettings/
+[Mm]emoryCaptures/
+
+# Asset meta cache
+*.pidb.meta
+*.pdb.meta
+*.mdb.meta
+
+# Visual Studio / Rider / VS Code caches
+.vs/
+.vscode/
+.idea/
+*.csproj
+*.unityproj
+*.sln
+*.suo
+*.tmp
+*.user
+*.userprefs
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+
+# Unity3D generated meta files for the above (auto-generated, never hand-edit)
+*.pidb
+*.booproj
+
+# Addressables build artifacts
+/Assets/AddressableAssetsData/*/*.bin*
+/Assets/AddressableAssetsData/*/BuildTarget*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Crashlytics
+crashlytics-build.properties
+
+# Local packages lock changes we don't want to churn in review
+# (keep manifest.json tracked; packages-lock.json is fine to track too)
