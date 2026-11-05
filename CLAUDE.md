@@ -46,13 +46,21 @@ Windows용 1인칭 싱글 사용자 가상 오피스. 신규 담당자가 역할
 
 ## 아키텍처 핵심
 `Assets/_Project/Scripts/Core/`
-- `GameManager` — 싱글턴, 현재 상태(Day 등) 보유, 부팅 시퀀스
+- `GameManager` — 싱글턴, 현재 상태(Phase·Day) 보유, 부팅 시퀀스
 - `RoomData` (ScriptableObject) — 방 ID·치수·비품 리스트·심사 단계별 일자 업무(`schedules`)·텔레포트
-  스폰 지점 정의. 심사 단계(기초조사/본심사/수정본검토/견본검수)는 `ReviewPhase`.
-- `SceneLoader` — 방별 서브씬 Additive 로딩 (허브→방 텔레포트의 기반)
+  스폰 지점·평면도 위치(`planRect`) 정의. 심사 단계(기초조사/본심사/수정본검토/견본검수)는 `ReviewPhase`.
+- `RoomCatalog` — 7개 방의 실제 데이터(2D 프로토타입에서 포팅)를 런타임에 `RoomData` 인스턴스로
+  생성. 지금은 `.asset` 파일 대신 이 방식을 쓴다(세션 제약 — 스크립트 GUID 미확정)
+- `FacilityController` — 허브↔방 전환의 중심. 지금은 `SceneLoader`(정식 설계, Additive 서브씬) 대신
+  한 씬 안에서 그레이박스(큐브)를 즉석 생성·파괴하는 방식으로 구현되어 있음(개발명세서 12절)
+- `HudUI` / `HubUI` / `QnaPanel` — HUD·허브 평면도·Q&A 패널을 코드로 직접 생성(프리팹/씬 없이)
 - `IInteractable` / `InteractionSystem` — 화면 중앙 Raycast 기반 1인칭 상호작용
 - `FirstPersonController` — CharacterController + 신규 Input System
-- `SaveSystem` — `Application.persistentDataPath`에 JSON으로 진행 상태 저장/복원
+- `SaveSystem` — `Application.persistentDataPath`에 JSON으로 진행 상태(Phase·Day) 저장/복원
+- `Bootstrap` — 위 전부를 순서대로 생성하는 진입점. 빈 씬에 이 컴포넌트 하나만 있으면 된다
+  (`Documents/SampleRoom_설정가이드.md`)
 
-Q&A 상호작용·미니맵·HUD는 아직 설계만 되어 있고 구현 전이다(`Documents/개발명세서.md` 5·10절).
-데이터 모델과 전체 공간 구성(7개 방), 비주얼 레퍼런스 스펙, 로드맵은 `Documents/개발명세서.md` 참고.
+Q&A는 오프라인 키워드 매칭으로 **확정**(네트워킹 금지 원칙상 LLM API 미사용). 지금 구현은 "대략적
+1차 프로토타입"이고 정식 설계(Additive 서브씬·`.asset` 데이터·실제 가구 에셋·베이크드 라이팅)와의
+차이는 개발명세서 12절에 표로 정리되어 있다. 전체 공간 구성(7개 방), 비주얼 레퍼런스 스펙, 로드맵도
+`Documents/개발명세서.md` 참고.

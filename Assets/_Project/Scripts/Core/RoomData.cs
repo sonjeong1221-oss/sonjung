@@ -31,6 +31,9 @@ namespace VirtualOffice.Core
         [Header("표시")]
         public Color accentColor = Color.white;
 
+        [Header("허브 평면도상 위치 (정규화 0~1: x,y,w,h)")]
+        public Vector4 planRect = new Vector4(0f, 0f, 0.1f, 0.9f);
+
         public List<FurnitureEntry> furniture = new List<FurnitureEntry>();
 
         [Header("심사 단계별 일자 업무 (기초조사·본심사는 별도 합숙, 수정본검토·견본검수는 각각 다른 시기)")]

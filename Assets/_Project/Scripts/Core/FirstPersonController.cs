@@ -25,6 +25,13 @@ namespace VirtualOffice.Core
         private float _pitch;
         private float _verticalVelocity;
 
+        /// FacilityController가 플레이어를 코드로 만들 때, 카메라도 같이 코드로 만들고
+        /// 나서 바로 이 메서드로 연결한다(인스펙터 드래그 연결을 대신함).
+        public void SetCameraPivot(Transform pivot)
+        {
+            cameraPivot = pivot;
+        }
+
         private void Awake()
         {
             _controller = GetComponent<CharacterController>();

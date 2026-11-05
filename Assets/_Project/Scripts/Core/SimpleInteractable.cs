@@ -14,6 +14,14 @@ namespace VirtualOffice.Core
         public string InteractionPrompt => prompt;
         public bool CanInteract => canInteract;
 
+        /// 인스펙터 없이 코드에서 만든 오브젝트(예: FacilityController의 그레이박스
+        /// 가구)에 쓰라고 둔 런타임 설정용 메서드.
+        public void Configure(string interactionPrompt, bool interactable = true)
+        {
+            prompt = interactionPrompt;
+            canInteract = interactable;
+        }
+
         public void Interact(FirstPersonController interactor)
         {
             onInteract?.Invoke();
