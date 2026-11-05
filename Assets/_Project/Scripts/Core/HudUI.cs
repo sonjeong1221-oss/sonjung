@@ -59,7 +59,7 @@ namespace VirtualOffice.Core
 
         private static void EnsureEventSystem()
         {
-            if (FindFirstObjectByType<EventSystem>() != null) return;
+            if (FindAnyObjectByType<EventSystem>() != null) return;
 
             var go = new GameObject("EventSystem", typeof(EventSystem), typeof(InputSystemUIInputModule));
             DontDestroyOnLoad(go);
