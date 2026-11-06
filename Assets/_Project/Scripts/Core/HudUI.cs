@@ -26,6 +26,9 @@ namespace VirtualOffice.Core
         private Text _phaseDayLabel;
         private Font _font;
 
+        private static readonly Color ShadowColor = new Color(0f, 0f, 0f, 0.30f);
+        private static readonly Vector2 ShadowOffset = new Vector2(3f, -3f);
+
         public Text PromptLabel => _promptText;
 
         public static HudUI Create()
@@ -103,23 +106,35 @@ namespace VirtualOffice.Core
             var go = new GameObject(name, typeof(RectTransform), typeof(Image));
             go.transform.SetParent(parent, false);
             var img = go.GetComponent<Image>();
+            img.sprite = UiStyle.RoundedPanel();
+            img.type = Image.Type.Sliced;
             img.color = color;
             return img;
         }
 
-        private Button CreateButton(Transform parent, string name, string label, Color color, Action onClick)
+        /// 둥근 카드 + 살짝 어긋난 그림자 한 쌍을 같은 자리에 쌓는다 — HUD 전체에
+        /// 쓰는 공통 "카드" 스타일.
+        private Image CreatePanelWithShadow(Transform parent, string name, Color color,
+            Vector2 anchorMin, Vector2 anchorMax, Vector2 pos, Vector2 size)
         {
-            var panel = CreatePanel(parent, name, color);
-            var button = panel.gameObject.AddComponent<Button>();
-            button.targetGraphic = panel;
+            var shadow = CreatePanel(parent, name + "_Shadow", ShadowColor);
+            Anchor(shadow.GetComponent<RectTransform>(), anchorMin, anchorMax, pos + ShadowOffset, size);
+
+            var card = CreatePanel(parent, name, color);
+            Anchor(card.GetComponent<RectTransform>(), anchorMin, anchorMax, pos, size);
+            return card;
+        }
+
+        private Button CreateButton(Transform parent, string name, string label, Color color, Action onClick,
+            Vector2 anchorMin, Vector2 anchorMax, Vector2 pos, Vector2 size)
+        {
+            var card = CreatePanelWithShadow(parent, name, color, anchorMin, anchorMax, pos, size);
+            var button = card.gameObject.AddComponent<Button>();
+            button.targetGraphic = card;
             if (onClick != null) button.onClick.AddListener(() => onClick());
 
-            var text = CreateText(panel.transform, "Label", label, 16, TextAnchor.MiddleCenter);
-            var textRt = text.GetComponent<RectTransform>();
-            textRt.anchorMin = Vector2.zero;
-            textRt.anchorMax = Vector2.one;
-            textRt.offsetMin = Vector2.zero;
-            textRt.offsetMax = Vector2.zero;
+            var text = CreateText(card.transform, "Label", label, 16, TextAnchor.MiddleCenter);
+            FillParent(text.GetComponent<RectTransform>());
 
             return button;
         }
@@ -132,39 +147,45 @@ namespace VirtualOffice.Core
             rt.sizeDelta = size;
         }
 
+        private static void FillParent(RectTransform rt)
+        {
+            rt.anchorMin = Vector2.zero;
+            rt.anchorMax = Vector2.one;
+            rt.offsetMin = Vector2.zero;
+            rt.offsetMax = Vector2.zero;
+        }
+
         // ---- panels ----
 
         private void BuildHomeAndToast(Transform canvas)
         {
-            var homeColor = new Color(0.08f, 0.07f, 0.06f, 0.55f);
-            var home = CreateButton(canvas, "HomeButton", "홈", homeColor, () => HomeClicked?.Invoke());
-            Anchor(home.GetComponent<RectTransform>(), new Vector2(0, 1), new Vector2(0, 1), new Vector2(50, -50), new Vector2(64, 64));
+            var homeColor = new Color(0.10f, 0.09f, 0.08f, 0.85f);
+            CreateButton(canvas, "HomeButton", "홈", homeColor, () => HomeClicked?.Invoke(),
+                new Vector2(0, 1), new Vector2(0, 1), new Vector2(50, -50), new Vector2(64, 64));
 
-            var toastPanel = CreatePanel(canvas, "Toast", new Color(0.08f, 0.07f, 0.06f, 0.55f));
-            var toastRt = toastPanel.GetComponent<RectTransform>();
-            Anchor(toastRt, new Vector2(0, 1), new Vector2(0, 1), new Vector2(170, -30), new Vector2(360, 64));
+            var toastPanel = CreatePanelWithShadow(canvas, "Toast", new Color(0.10f, 0.09f, 0.08f, 0.85f),
+                new Vector2(0, 1), new Vector2(0, 1), new Vector2(170, -30), new Vector2(360, 64));
 
             _toastGroup = toastPanel.gameObject.AddComponent<CanvasGroup>();
             _toastGroup.alpha = 0f;
 
             _toastText = CreateText(toastPanel.transform, "ToastText", "", 15, TextAnchor.MiddleLeft);
             var textRt = _toastText.GetComponent<RectTransform>();
-            Anchor(textRt, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+            FillParent(textRt);
             textRt.offsetMin = new Vector2(14, 6);
             textRt.offsetMax = new Vector2(-14, -6);
         }
 
         private void BuildKeyHintCard(Transform canvas)
         {
-            var panel = CreatePanel(canvas, "KeyHintCard", new Color(0.08f, 0.07f, 0.06f, 0.45f));
-            var rt = panel.GetComponent<RectTransform>();
-            Anchor(rt, new Vector2(0, 0), new Vector2(0, 0), new Vector2(150, 120), new Vector2(260, 150));
+            var panel = CreatePanelWithShadow(canvas, "KeyHintCard", new Color(0.10f, 0.09f, 0.08f, 0.70f),
+                new Vector2(0, 0), new Vector2(0, 0), new Vector2(150, 120), new Vector2(260, 150));
 
             var text = CreateText(panel.transform, "Text",
                 "W A S D   이동\n마우스   시점 회전\nE   상호작용\nESC   메뉴 열기",
                 14, TextAnchor.UpperLeft);
             var textRt = text.GetComponent<RectTransform>();
-            Anchor(textRt, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+            FillParent(textRt);
             textRt.offsetMin = new Vector2(14, 10);
             textRt.offsetMax = new Vector2(-14, -10);
         }
@@ -178,11 +199,10 @@ namespace VirtualOffice.Core
             for (int i = 0; i < labels.Length; i++)
             {
                 string label = labels[i];
-                var button = CreateButton(canvas, "Dock_" + label, label,
-                    new Color(0.08f, 0.07f, 0.06f, 0.5f),
-                    () => ShowToast(label + " — 다음 단계에서 실제 기능 연결 예정"));
-                var rt = button.GetComponent<RectTransform>();
-                Anchor(rt, new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(startX + i * spacing, 70), new Vector2(84, 84));
+                CreateButton(canvas, "Dock_" + label, label,
+                    new Color(0.10f, 0.09f, 0.08f, 0.80f),
+                    () => ShowToast(label + " — 다음 단계에서 실제 기능 연결 예정"),
+                    new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(startX + i * spacing, 70), new Vector2(84, 84));
             }
         }
 

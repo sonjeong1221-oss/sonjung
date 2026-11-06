@@ -9,6 +9,7 @@ namespace VirtualOffice.Core
     /// 방을 고르는 화면 + 심사 단계·일자 탭. 실제 미니맵(Top-down 카메라 +
     /// RenderTexture)은 다음 단계에서 교체 — 이번 "대략적" 구현은 버튼판으로
     /// 같은 동작(둘러보기 전 평면도에서 방 선택)을 보여준다(개발명세서 4·10절).
+    /// 카드·버튼은 전부 둥근 모서리 + 그림자(UiStyle)로 통일한다.
     public class HubUI : MonoBehaviour
     {
         public static HubUI Instance { get; private set; }
@@ -21,7 +22,9 @@ namespace VirtualOffice.Core
         private readonly Dictionary<CampDay, Button> _dayButtons = new Dictionary<CampDay, Button>();
 
         private static readonly Color ActiveTab = new Color(0.86f, 0.63f, 0.27f, 0.95f);
-        private static readonly Color InactiveTab = new Color(0.15f, 0.14f, 0.12f, 0.6f);
+        private static readonly Color InactiveTab = new Color(0.18f, 0.17f, 0.16f, 0.85f);
+        private static readonly Color ShadowColor = new Color(0f, 0f, 0f, 0.30f);
+        private static readonly Vector2 ShadowOffset = new Vector2(3f, -3f);
 
         public static HubUI Create(List<RoomData> rooms)
         {
@@ -46,7 +49,8 @@ namespace VirtualOffice.Core
             scaler.referenceResolution = new Vector2(1920, 1080);
             scaler.matchWidthOrHeight = 0.5f;
 
-            var bg = CreatePanel(canvasGo.transform, "Background", new Color(0.05f, 0.05f, 0.06f, 0.92f));
+            // 전체 배경은 화면 꽉 채우는 용도라 모서리를 안 둥글린다(CreateSquarePanel)
+            var bg = CreateSquarePanel(canvasGo.transform, "Background", new Color(0.05f, 0.05f, 0.06f, 0.92f));
             FillParent(bg.GetComponent<RectTransform>());
 
             BuildTitle(bg.transform);
@@ -71,8 +75,8 @@ namespace VirtualOffice.Core
             {
                 ReviewPhase phase = phases[i];
                 var button = CreateButton(parent, "Phase_" + phase, HudUI.PhaseLabel(phase), InactiveTab,
-                    () => { GameManager.Instance.SetPhase(phase); RefreshTabHighlight(); if (HudUI.Instance != null) HudUI.Instance.RefreshPhaseDayLabel(); });
-                Anchor(button.GetComponent<RectTransform>(), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(startX + i * spacing, -130), new Vector2(170, 46));
+                    () => { GameManager.Instance.SetPhase(phase); RefreshTabHighlight(); if (HudUI.Instance != null) HudUI.Instance.RefreshPhaseDayLabel(); },
+                    new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(startX + i * spacing, -130), new Vector2(170, 46));
                 _phaseButtons[phase] = button;
             }
         }
@@ -87,8 +91,8 @@ namespace VirtualOffice.Core
             {
                 CampDay day = days[i];
                 var button = CreateButton(parent, "Day_" + day, HudUI.DayLabel(day), InactiveTab,
-                    () => { GameManager.Instance.SetDay(day); RefreshTabHighlight(); if (HudUI.Instance != null) HudUI.Instance.RefreshPhaseDayLabel(); });
-                Anchor(button.GetComponent<RectTransform>(), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(startX + i * spacing, -190), new Vector2(130, 40));
+                    () => { GameManager.Instance.SetDay(day); RefreshTabHighlight(); if (HudUI.Instance != null) HudUI.Instance.RefreshPhaseDayLabel(); },
+                    new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(startX + i * spacing, -190), new Vector2(130, 40));
                 _dayButtons[day] = button;
             }
 
@@ -111,27 +115,25 @@ namespace VirtualOffice.Core
 
         private void BuildFloorplan(Transform parent)
         {
-            var plan = CreatePanel(parent, "Floorplan", new Color(0.12f, 0.11f, 0.1f, 0.6f));
+            var plan = CreateCard(parent, "Floorplan", new Color(0.12f, 0.11f, 0.1f, 0.55f));
             var planRt = plan.GetComponent<RectTransform>();
-            Anchor(planRt, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, -40), new Vector2(1500, 320));
+            Anchor(planRt, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, -40), new Vector2(1520, 330));
 
             foreach (var room in _rooms)
             {
                 var r = room.planRect; // x,y,w,h normalized 0..1 (y grows downward in the original plan)
                 var accent = room.accentColor;
 
-                var button = CreateButton(plan.transform, "Room_" + room.roomId, room.label,
-                    new Color(accent.r, accent.g, accent.b, 0.85f),
-                    () => RoomSelected?.Invoke(room.roomId));
-
                 // 평면도 좌표계: planRect는 원본 2D 도면 기준(x,y,w,h), y는 아래로 증가 →
                 // UI 앵커는 위가 1이므로 뒤집는다
                 float left = r.x, top = r.y, width = r.z, height = r.w;
-                var rt = button.GetComponent<RectTransform>();
-                rt.anchorMin = new Vector2(left, 1f - top - height);
-                rt.anchorMax = new Vector2(left + width, 1f - top);
-                rt.offsetMin = new Vector2(4, 4);
-                rt.offsetMax = new Vector2(-4, -4);
+                var min = new Vector2(left, 1f - top - height);
+                var max = new Vector2(left + width, 1f - top);
+
+                var button = CreateButton(plan.transform, "Room_" + room.roomId, room.label,
+                    new Color(accent.r, accent.g, accent.b, 0.92f),
+                    () => RoomSelected?.Invoke(room.roomId),
+                    min, max, Vector2.zero, Vector2.zero, inset: 6f);
             }
         }
 
@@ -150,7 +152,8 @@ namespace VirtualOffice.Core
             return t;
         }
 
-        private Image CreatePanel(Transform parent, string name, Color color)
+        /// 화면 전체 배경처럼 모서리를 둥글리면 안 되는 패널(FillParent로 꽉 채울 때)
+        private Image CreateSquarePanel(Transform parent, string name, Color color)
         {
             var go = new GameObject(name, typeof(RectTransform), typeof(Image));
             go.transform.SetParent(parent, false);
@@ -159,18 +162,58 @@ namespace VirtualOffice.Core
             return img;
         }
 
-        private Button CreateButton(Transform parent, string name, string label, Color color, Action onClick)
+        /// 둥근 모서리 카드(버튼이 아닌 배경판에 사용 — 예: 평면도 전체 틀)
+        private Image CreateCard(Transform parent, string name, Color color)
         {
-            var panel = CreatePanel(parent, name, color);
-            var button = panel.gameObject.AddComponent<Button>();
-            button.targetGraphic = panel;
+            var go = new GameObject(name, typeof(RectTransform), typeof(Image));
+            go.transform.SetParent(parent, false);
+            var img = go.GetComponent<Image>();
+            img.sprite = UiStyle.RoundedPanel();
+            img.type = Image.Type.Sliced;
+            img.color = color;
+            return img;
+        }
+
+        /// 둥근 모서리 + 그림자가 있는 버튼. anchorMin/anchorMax/pos/size로 직접 배치하거나,
+        /// (평면도처럼) anchorMin/anchorMax만으로 영역을 잡고 inset으로 안쪽 여백만 줄 수도 있다.
+        private Button CreateButton(Transform parent, string name, string label, Color color, Action onClick,
+            Vector2 anchorMin, Vector2 anchorMax, Vector2 pos, Vector2 size, float inset = 0f)
+        {
+            var shadow = CreateCard(parent, name + "_Shadow", ShadowColor);
+            var shadowRt = shadow.GetComponent<RectTransform>();
+            ApplyAnchorRect(shadowRt, anchorMin, anchorMax, pos + ShadowOffset, size, inset);
+
+            var card = CreateCard(parent, name, color);
+            var cardRt = card.GetComponent<RectTransform>();
+            ApplyAnchorRect(cardRt, anchorMin, anchorMax, pos, size, inset);
+
+            var button = card.gameObject.AddComponent<Button>();
+            button.targetGraphic = card;
             if (onClick != null) button.onClick.AddListener(() => onClick());
 
-            var text = CreateText(panel.transform, "Label", label, 15, TextAnchor.MiddleCenter);
-            var textRt = text.GetComponent<RectTransform>();
-            FillParent(textRt);
+            var text = CreateText(card.transform, "Label", label, 15, TextAnchor.MiddleCenter);
+            FillParent(text.GetComponent<RectTransform>());
 
             return button;
+        }
+
+        private static void ApplyAnchorRect(RectTransform rt, Vector2 anchorMin, Vector2 anchorMax, Vector2 pos, Vector2 size, float inset)
+        {
+            rt.anchorMin = anchorMin;
+            rt.anchorMax = anchorMax;
+            if (size == Vector2.zero && anchorMin != anchorMax)
+            {
+                // 영역(anchorMin~anchorMax)만으로 배치 — 늘어난(stretched) 사각형이라
+                // anchoredPosition이 아니라 offsetMin/Max 양쪽에 pos를 더해야 그림자가
+                // 카드 뒤에서 실제로 비껴 보인다(inset은 안쪽 여백)
+                rt.offsetMin = new Vector2(inset, inset) + pos;
+                rt.offsetMax = new Vector2(-inset, -inset) + pos;
+            }
+            else
+            {
+                rt.anchoredPosition = pos;
+                rt.sizeDelta = size;
+            }
         }
 
         private static void Anchor(RectTransform rt, Vector2 min, Vector2 max, Vector2 pos, Vector2 size)

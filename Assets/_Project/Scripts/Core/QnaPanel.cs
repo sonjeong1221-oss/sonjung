@@ -163,6 +163,8 @@ namespace VirtualOffice.Core
             var go = new GameObject(name, typeof(RectTransform), typeof(Image));
             go.transform.SetParent(parent, false);
             var img = go.GetComponent<Image>();
+            img.sprite = UiStyle.RoundedPanel();
+            img.type = Image.Type.Sliced;
             img.color = color;
             return img;
         }
