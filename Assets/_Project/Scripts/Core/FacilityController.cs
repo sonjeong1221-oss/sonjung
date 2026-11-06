@@ -6,15 +6,29 @@ namespace VirtualOffice.Core
     /// "대략적인" 메타버스 틀의 중심부: 허브(HubUI)에서 방을 고르면 그레이박스
     /// 공간을 코드로 즉석에서 지어서 텔레포트시키고, 나가면 허브로 돌아간다.
     ///
-    /// 정식 버전(개발명세서 4·6절)은 방마다 Additive 서브씬 + 실제 가구 에셋을
-    /// 쓰지만, 이 세션엔 Unity 에디터가 없어 씬/프리팹을 손으로 안전하게 만들 수
-    /// 없다(CLAUDE.md 세션 제약). 그래서 이번 "대략적 구현"은 SceneLoader 대신
-    /// 하나의 씬 안에서 큐브로 방을 즉석 생성·파괴하는 방식으로 같은 흐름
-    /// (허브 → 선택 → 텔레포트 → 1인칭 둘러보기 → 복귀)을 보여준다. 나중에
-    /// 실제 아트가 들어오면 이 클래스의 BuildGreyboxRoom만 교체하면 된다.
+    /// 정식 버전(개발명세서 4·6절)은 방마다 Additive 서브씬 + 실제(구매/다운로드한)
+    /// 가구 에셋을 쓰지만, 이 세션은 네트워크가 제한돼 있어 3D 에셋을 직접 받아올
+    /// 수 없다(CLAUDE.md 세션 제약 — 가구 에셋은 사용자가 로컬 에디터의 Asset
+    /// Store에서 받아야 함). 그 전까지 품질을 최대한 끌어올리기 위해, 단일 큐브가
+    /// 아니라 책상+모니터+의자처럼 여러 프리미티브를 조합한 모양 + 조명을 코드로
+    /// 직접 구성한다(개발명세서 12절). 나중에 실제 에셋이 들어오면 아래
+    /// BuildFurnitureCluster의 각 분기만 프리팹 인스턴스화로 교체하면 된다.
     public class FacilityController : MonoBehaviour
     {
         public static FacilityController Instance { get; private set; }
+
+        private static readonly Color WoodColor = new Color(0.62f, 0.47f, 0.30f);
+        private static readonly Color WoodMid = new Color(0.52f, 0.39f, 0.25f);
+        private static readonly Color WoodDark = new Color(0.40f, 0.30f, 0.20f);
+        private static readonly Color LegColor = new Color(0.22f, 0.22f, 0.24f);
+        private static readonly Color ChairColor = new Color(0.55f, 0.55f, 0.58f);
+        private static readonly Color DarkBezel = new Color(0.08f, 0.08f, 0.10f);
+        private static readonly Color ScreenGlow = new Color(0.55f, 0.78f, 0.95f);
+        private static readonly Color LightGrey = new Color(0.85f, 0.85f, 0.86f);
+        private static readonly Color MidGrey = new Color(0.65f, 0.65f, 0.68f);
+        private static readonly Color Cardboard = new Color(0.72f, 0.58f, 0.40f);
+        private static readonly Color SofaFabric = new Color(0.72f, 0.60f, 0.45f);
+        private static readonly Color WaterBlue = new Color(0.55f, 0.78f, 0.92f);
 
         private List<RoomData> _rooms;
         private GameObject _playerRoot;
@@ -102,7 +116,7 @@ namespace VirtualOffice.Core
             ShowHub();
         }
 
-        // ---- grey-box room construction ----
+        // ---- room shell: floor, walls, ceiling, lighting ----
 
         private GameObject BuildGreyboxRoom(RoomData room)
         {
@@ -113,12 +127,22 @@ namespace VirtualOffice.Core
             floor.name = "Floor";
             floor.transform.SetParent(root.transform, false);
             floor.transform.localScale = new Vector3(w / 10f, 1f, d / 10f);
-            ApplyColor(floor, Lighten(room.accentColor, 0.65f));
+            ApplyColor(floor, Lighten(room.accentColor, 0.65f), 0.15f);
+
+            var ceiling = GameObject.CreatePrimitive(PrimitiveType.Plane);
+            ceiling.name = "Ceiling";
+            ceiling.transform.SetParent(root.transform, false);
+            ceiling.transform.localPosition = new Vector3(0, h, 0);
+            ceiling.transform.localRotation = Quaternion.Euler(180f, 0f, 0f);
+            ceiling.transform.localScale = new Vector3(w / 10f, 1f, d / 10f);
+            ApplyColor(ceiling, new Color(0.96f, 0.95f, 0.90f), 0.08f);
 
             BuildWall(root.transform, new Vector3(0, h / 2f, -d / 2f), new Vector3(w, h, 0.1f), room.accentColor);
             BuildWall(root.transform, new Vector3(0, h / 2f, d / 2f), new Vector3(w, h, 0.1f), room.accentColor);
             BuildWall(root.transform, new Vector3(-w / 2f, h / 2f, 0), new Vector3(0.1f, h, d), room.accentColor);
             BuildWall(root.transform, new Vector3(w / 2f, h / 2f, 0), new Vector3(0.1f, h, d), room.accentColor);
+
+            BuildRoomLight(root.transform, h);
 
             foreach (var item in room.furniture)
             {
@@ -135,57 +159,216 @@ namespace VirtualOffice.Core
             wall.transform.SetParent(parent, false);
             wall.transform.localPosition = localPos;
             wall.transform.localScale = scale;
-            ApplyColor(wall, Lighten(roomColor, 0.3f));
+            ApplyColor(wall, Lighten(roomColor, 0.3f), 0.1f);
         }
+
+        private static void BuildRoomLight(Transform parent, float ceilingHeight)
+        {
+            var lightGo = new GameObject("RoomLight", typeof(Light));
+            lightGo.transform.SetParent(parent, false);
+            lightGo.transform.localPosition = new Vector3(0, ceilingHeight - 0.1f, 0);
+            lightGo.transform.localRotation = Quaternion.Euler(55f, 30f, 0f);
+
+            var light = lightGo.GetComponent<Light>();
+            light.type = LightType.Directional;
+            light.intensity = 1.15f;
+            light.color = new Color(1f, 0.96f, 0.88f); // 베이크드 라이팅 전까지의 따뜻한 임시 조명
+            light.shadows = LightShadows.Soft;
+
+            RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Flat;
+            RenderSettings.ambientLight = new Color(0.45f, 0.43f, 0.40f);
+        }
+
+        // ---- furniture: composed from a few primitives instead of one flat cube ----
 
         private static void BuildFurniturePiece(Transform parent, FurnitureEntry entry)
         {
-            var go = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            go.name = "Furniture_" + entry.kind;
-            go.transform.SetParent(parent, false);
+            var group = new GameObject("Furniture_" + entry.kind);
+            group.transform.SetParent(parent, false);
+            group.transform.localPosition = entry.localPosition;
 
-            Vector3 size = FurnitureSize(entry.kind);
-            go.transform.localPosition = entry.localPosition + new Vector3(0, size.y / 2f, 0);
-            go.transform.localScale = size;
-            ApplyColor(go, FurnitureColor(entry.kind));
+            Bounds bounds = BuildFurnitureCluster(group.transform, entry.kind);
+
+            var box = group.AddComponent<BoxCollider>();
+            box.center = bounds.center;
+            box.size = bounds.size;
 
             if (entry.interactable)
             {
-                var interactable = go.AddComponent<SimpleInteractable>();
+                var interactable = group.AddComponent<SimpleInteractable>();
                 interactable.Configure("E키로 상호작용 — " + entry.label);
             }
         }
 
-        private static Vector3 FurnitureSize(FurnitureKind kind)
+        private static Bounds BuildFurnitureCluster(Transform parent, FurnitureKind kind)
         {
             switch (kind)
             {
-                case FurnitureKind.Table: return new Vector3(1.6f, 0.75f, 0.9f);
-                case FurnitureKind.Desks: return new Vector3(1.2f, 0.75f, 0.6f);
-                case FurnitureKind.Shelf: return new Vector3(0.9f, 1.8f, 0.4f);
-                case FurnitureKind.Tv: return new Vector3(1.0f, 0.6f, 0.08f);
-                case FurnitureKind.Whiteboard: return new Vector3(1.2f, 0.9f, 0.05f);
-                case FurnitureKind.Printer: return new Vector3(0.5f, 0.5f, 0.5f);
-                case FurnitureKind.Crate: return new Vector3(0.5f, 0.5f, 0.5f);
-                case FurnitureKind.Sofa: return new Vector3(1.4f, 0.7f, 0.7f);
-                case FurnitureKind.Cooler: return new Vector3(0.4f, 1.1f, 0.4f);
-                default: return Vector3.one * 0.6f;
+                case FurnitureKind.Desks: return BuildDesks(parent);
+                case FurnitureKind.Table: return BuildTable(parent);
+                case FurnitureKind.Shelf: return BuildShelf(parent);
+                case FurnitureKind.Tv: return BuildTv(parent);
+                case FurnitureKind.Whiteboard: return BuildWhiteboard(parent);
+                case FurnitureKind.Printer: return BuildPrinter(parent);
+                case FurnitureKind.Crate: return BuildCrate(parent);
+                case FurnitureKind.Sofa: return BuildSofa(parent);
+                case FurnitureKind.Cooler: return BuildCooler(parent);
+                default: return BuildDefault(parent);
             }
         }
 
-        private static Color FurnitureColor(FurnitureKind kind)
+        private static Bounds BuildDesks(Transform parent)
         {
-            switch (kind)
+            SpawnPart(parent, new Vector3(0, 0.72f, 0), new Vector3(1.15f, 0.05f, 0.58f), WoodColor);
+
+            float hx = 0.52f, hz = 0.24f;
+            foreach (var sx in new[] { -1f, 1f })
             {
-                case FurnitureKind.Tv: return new Color(0.1f, 0.1f, 0.12f);
-                case FurnitureKind.Whiteboard: return Color.white;
-                case FurnitureKind.Shelf: return new Color(0.55f, 0.4f, 0.25f);
-                case FurnitureKind.Crate: return new Color(0.6f, 0.45f, 0.3f);
-                default: return new Color(0.85f, 0.83f, 0.78f);
+                foreach (var sz in new[] { -1f, 1f })
+                {
+                    SpawnPart(parent, new Vector3(sx * hx, 0.36f, sz * hz), new Vector3(0.04f, 0.72f, 0.04f), LegColor);
+                }
             }
+
+            SpawnPart(parent, new Vector3(0, 1.0f, -0.20f), new Vector3(0.50f, 0.32f, 0.03f), DarkBezel);
+            SpawnPart(parent, new Vector3(0, 1.0f, -0.185f), new Vector3(0.44f, 0.26f, 0.01f), ScreenGlow, 0.6f);
+            SpawnPart(parent, new Vector3(0, 0.80f, -0.20f), new Vector3(0.06f, 0.12f, 0.06f), LegColor);
+
+            SpawnChair(parent, new Vector3(0, 0, 0.55f), 180f);
+
+            return new Bounds(new Vector3(0, 0.6f, 0), new Vector3(1.4f, 1.4f, 1.4f));
         }
 
-        private static void ApplyColor(GameObject go, Color color)
+        private static Bounds BuildTable(Transform parent)
+        {
+            SpawnPart(parent, new Vector3(0, 0.74f, 0), new Vector3(1.6f, 0.06f, 0.95f), WoodColor);
+
+            float hx = 0.72f, hz = 0.40f;
+            foreach (var sx in new[] { -1f, 1f })
+            {
+                foreach (var sz in new[] { -1f, 1f })
+                {
+                    SpawnPart(parent, new Vector3(sx * hx, 0.37f, sz * hz), new Vector3(0.05f, 0.74f, 0.05f), LegColor);
+                }
+            }
+
+            const int chairCount = 6;
+            float rx = 1.0f, rz = 0.65f;
+            for (int i = 0; i < chairCount; i++)
+            {
+                float ang = i * Mathf.PI * 2f / chairCount;
+                var c = new Vector3(Mathf.Sin(ang) * rx, 0, Mathf.Cos(ang) * rz);
+                float yaw = Mathf.Atan2(c.x, c.z) * Mathf.Rad2Deg + 180f;
+                SpawnChair(parent, c, yaw);
+            }
+
+            return new Bounds(new Vector3(0, 0.6f, 0), new Vector3(2.2f, 1.4f, 1.8f));
+        }
+
+        private static Bounds BuildShelf(Transform parent)
+        {
+            SpawnPart(parent, new Vector3(0, 0.9f, 0), new Vector3(0.9f, 1.8f, 0.35f), WoodDark);
+            for (int i = 1; i < 4; i++)
+            {
+                float y = i * 0.42f;
+                SpawnPart(parent, new Vector3(0, y, 0.01f), new Vector3(0.82f, 0.03f, 0.33f), WoodMid, 0.1f);
+            }
+
+            return new Bounds(new Vector3(0, 0.9f, 0), new Vector3(1.0f, 1.9f, 0.5f));
+        }
+
+        private static Bounds BuildTv(Transform parent)
+        {
+            SpawnPart(parent, Vector3.zero, new Vector3(1.0f, 0.6f, 0.06f), DarkBezel);
+            SpawnPart(parent, new Vector3(0, 0, 0.035f), new Vector3(0.92f, 0.52f, 0.01f), ScreenGlow, 0.65f);
+
+            return new Bounds(Vector3.zero, new Vector3(1.1f, 0.7f, 0.2f));
+        }
+
+        private static Bounds BuildWhiteboard(Transform parent)
+        {
+            SpawnPart(parent, Vector3.zero, new Vector3(1.3f, 1.0f, 0.05f), WoodMid);
+            SpawnPart(parent, new Vector3(0, 0, 0.03f), new Vector3(1.18f, 0.86f, 0.01f), Color.white, 0.5f);
+
+            return new Bounds(Vector3.zero, new Vector3(1.4f, 1.1f, 0.15f));
+        }
+
+        private static Bounds BuildPrinter(Transform parent)
+        {
+            SpawnPart(parent, new Vector3(0, 0.22f, 0), new Vector3(0.55f, 0.45f, 0.45f), LightGrey);
+            SpawnPart(parent, new Vector3(0, 0.47f, 0), new Vector3(0.50f, 0.06f, 0.40f), MidGrey);
+
+            return new Bounds(new Vector3(0, 0.25f, 0), new Vector3(0.65f, 0.6f, 0.55f));
+        }
+
+        private static Bounds BuildCrate(Transform parent)
+        {
+            SpawnPart(parent, new Vector3(-0.3f, 0.25f, 0), new Vector3(0.5f, 0.5f, 0.5f), Cardboard);
+            SpawnPart(parent, new Vector3(0.3f, 0.22f, 0.05f), new Vector3(0.45f, 0.44f, 0.45f), Cardboard);
+
+            return new Bounds(new Vector3(0, 0.25f, 0), new Vector3(1.1f, 0.6f, 0.6f));
+        }
+
+        private static Bounds BuildSofa(Transform parent)
+        {
+            SpawnPart(parent, new Vector3(0, 0.22f, 0), new Vector3(1.5f, 0.3f, 0.75f), SofaFabric);
+            SpawnPart(parent, new Vector3(0, 0.5f, -0.30f), new Vector3(1.5f, 0.45f, 0.12f), SofaFabric);
+            SpawnPart(parent, new Vector3(-0.68f, 0.4f, 0), new Vector3(0.15f, 0.35f, 0.75f), SofaFabric);
+            SpawnPart(parent, new Vector3(0.68f, 0.4f, 0), new Vector3(0.15f, 0.35f, 0.75f), SofaFabric);
+
+            return new Bounds(new Vector3(0, 0.35f, 0), new Vector3(1.7f, 0.8f, 0.9f));
+        }
+
+        private static Bounds BuildCooler(Transform parent)
+        {
+            SpawnPart(parent, new Vector3(0, 0.55f, 0), new Vector3(0.38f, 1.1f, 0.38f), LightGrey, 0.3f, 0f, PrimitiveType.Cylinder);
+            SpawnPart(parent, new Vector3(0, 1.15f, 0), new Vector3(0.30f, 0.25f, 0.30f), WaterBlue, 0.6f, 0f, PrimitiveType.Sphere);
+
+            return new Bounds(new Vector3(0, 0.6f, 0), new Vector3(0.5f, 1.4f, 0.5f));
+        }
+
+        private static Bounds BuildDefault(Transform parent)
+        {
+            SpawnPart(parent, new Vector3(0, 0.25f, 0), new Vector3(0.5f, 0.5f, 0.5f), WoodMid);
+
+            return new Bounds(new Vector3(0, 0.25f, 0), new Vector3(0.6f, 0.6f, 0.6f));
+        }
+
+        private static void SpawnChair(Transform parent, Vector3 center, float yaw)
+        {
+            var chair = new GameObject("ChairPart");
+            chair.transform.SetParent(parent, false);
+            chair.transform.localPosition = center;
+            chair.transform.localRotation = Quaternion.Euler(0, yaw, 0);
+
+            SpawnPart(chair.transform, new Vector3(0, 0.22f, 0), new Vector3(0.38f, 0.05f, 0.38f), ChairColor);
+            SpawnPart(chair.transform, new Vector3(0, 0.45f, -0.17f), new Vector3(0.38f, 0.46f, 0.05f), ChairColor);
+
+            float lx = 0.16f, lz = 0.16f;
+            SpawnPart(chair.transform, new Vector3(lx, 0.1f, lz), new Vector3(0.03f, 0.2f, 0.03f), LegColor);
+            SpawnPart(chair.transform, new Vector3(-lx, 0.1f, lz), new Vector3(0.03f, 0.2f, 0.03f), LegColor);
+            SpawnPart(chair.transform, new Vector3(lx, 0.1f, -lz), new Vector3(0.03f, 0.2f, 0.03f), LegColor);
+            SpawnPart(chair.transform, new Vector3(-lx, 0.1f, -lz), new Vector3(0.03f, 0.2f, 0.03f), LegColor);
+        }
+
+        // ---- low-level helpers ----
+
+        private static GameObject SpawnPart(Transform parent, Vector3 localPos, Vector3 size, Color color,
+            float smoothness = 0.2f, float metallic = 0f, PrimitiveType type = PrimitiveType.Cube)
+        {
+            var go = GameObject.CreatePrimitive(type);
+            go.transform.SetParent(parent, false);
+            go.transform.localPosition = localPos;
+            go.transform.localScale = size;
+
+            var col = go.GetComponent<Collider>();
+            if (col != null) Destroy(col); // 조각 각각의 충돌은 필요 없음 — 그룹 전체에 콜라이더 하나만 둔다
+
+            ApplyColor(go, color, smoothness, metallic);
+            return go;
+        }
+
+        private static void ApplyColor(GameObject go, Color color, float smoothness = 0.2f, float metallic = 0f)
         {
             var renderer = go.GetComponent<Renderer>();
             if (renderer == null) return;
@@ -194,6 +377,9 @@ namespace VirtualOffice.Core
             if (shader == null) shader = Shader.Find("Standard");
 
             var mat = new Material(shader) { color = color };
+            if (mat.HasProperty("_Smoothness")) mat.SetFloat("_Smoothness", smoothness);
+            if (mat.HasProperty("_Glossiness")) mat.SetFloat("_Glossiness", smoothness);
+            if (mat.HasProperty("_Metallic")) mat.SetFloat("_Metallic", metallic);
             renderer.material = mat;
         }
 
