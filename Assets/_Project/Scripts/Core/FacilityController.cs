@@ -213,6 +213,12 @@ namespace VirtualOffice.Core
                 case FurnitureKind.Crate: return BuildCrate(parent);
                 case FurnitureKind.Sofa: return BuildSofa(parent);
                 case FurnitureKind.Cooler: return BuildCooler(parent);
+                case FurnitureKind.ExecDesk: return BuildExecDesk(parent);
+                case FurnitureKind.Cctv: return BuildCctv(parent);
+                case FurnitureKind.CallBell: return BuildCallBell(parent);
+                case FurnitureKind.Counter: return BuildCounter(parent);
+                case FurnitureKind.DocSet: return BuildDocSet(parent);
+                case FurnitureKind.SnackCounter: return BuildSnackCounter(parent);
                 default: return BuildDefault(parent);
             }
         }
@@ -325,6 +331,83 @@ namespace VirtualOffice.Core
             SpawnPart(parent, new Vector3(0, 1.15f, 0), new Vector3(0.30f, 0.25f, 0.30f), WaterBlue, 0.6f, 0f, PrimitiveType.Sphere);
 
             return new Bounds(new Vector3(0, 0.6f, 0), new Vector3(0.5f, 1.4f, 0.5f));
+        }
+
+        private static Bounds BuildExecDesk(Transform parent)
+        {
+            SpawnPart(parent, new Vector3(0, 0.75f, 0), new Vector3(1.5f, 0.06f, 0.75f), WoodDark);
+
+            float hx = 0.68f, hz = 0.32f;
+            foreach (var sx in new[] { -1f, 1f })
+            {
+                foreach (var sz in new[] { -1f, 1f })
+                {
+                    SpawnPart(parent, new Vector3(sx * hx, 0.37f, sz * hz), new Vector3(0.05f, 0.74f, 0.05f), LegColor);
+                }
+            }
+
+            SpawnPart(parent, new Vector3(0, 1.03f, -0.28f), new Vector3(0.5f, 0.32f, 0.03f), DarkBezel);
+            SpawnPart(parent, new Vector3(0, 1.03f, -0.265f), new Vector3(0.44f, 0.26f, 0.01f), ScreenGlow, 0.6f);
+
+            SpawnChair(parent, new Vector3(0, 0, 0.65f), 180f);
+
+            // 서류 캐비닛(책상 옆)
+            SpawnPart(parent, new Vector3(0.95f, 0.45f, 0.3f), new Vector3(0.45f, 0.9f, 0.4f), WoodMid);
+
+            return new Bounds(new Vector3(0.2f, 0.6f, 0), new Vector3(2.0f, 1.4f, 1.5f));
+        }
+
+        private static Bounds BuildCctv(Transform parent)
+        {
+            SpawnPart(parent, Vector3.zero, new Vector3(0.18f, 0.18f, 0.18f), LegColor, 0.4f, 0.3f, PrimitiveType.Sphere);
+            SpawnPart(parent, new Vector3(0, 0, 0.12f), new Vector3(0.08f, 0.08f, 0.08f), DarkBezel, 0.6f);
+
+            return new Bounds(Vector3.zero, new Vector3(0.3f, 0.3f, 0.3f));
+        }
+
+        private static Bounds BuildCallBell(Transform parent)
+        {
+            SpawnPart(parent, Vector3.zero, new Vector3(0.22f, 0.3f, 0.06f), LightGrey);
+            SpawnPart(parent, new Vector3(0, 0.08f, 0.035f), new Vector3(0.1f, 0.1f, 0.02f), new Color(0.85f, 0.2f, 0.2f), 0.5f);
+            SpawnPart(parent, new Vector3(0, -0.08f, 0.035f), new Vector3(0.14f, 0.05f, 0.01f), DarkBezel, 0.4f);
+
+            return new Bounds(Vector3.zero, new Vector3(0.3f, 0.4f, 0.15f));
+        }
+
+        private static Bounds BuildCounter(Transform parent)
+        {
+            SpawnPart(parent, new Vector3(0, 0.55f, 0), new Vector3(1.4f, 1.1f, 0.12f), WoodMid);
+            SpawnPart(parent, new Vector3(0, 0.95f, 0), new Vector3(1.0f, 0.35f, 0.02f), new Color(0.80f, 0.90f, 0.95f, 0.6f), 0.8f);
+            SpawnPart(parent, new Vector3(0, 0.58f, 0.07f), new Vector3(1.3f, 0.05f, 0.05f), WoodDark);
+
+            return new Bounds(new Vector3(0, 0.55f, 0), new Vector3(1.5f, 1.3f, 0.3f));
+        }
+
+        private static Bounds BuildDocSet(Transform parent)
+        {
+            SpawnPart(parent, new Vector3(0, 0.74f, 0), new Vector3(0.28f, 0.02f, 0.22f), new Color(0.93f, 0.88f, 0.75f));
+            SpawnPart(parent, new Vector3(0.22f, 0.75f, 0), new Vector3(0.24f, 0.03f, 0.20f), new Color(0.95f, 0.80f, 0.15f));
+            SpawnPart(parent, new Vector3(0.44f, 0.76f, 0), new Vector3(0.24f, 0.04f, 0.20f), new Color(0.20f, 0.45f, 0.85f));
+
+            return new Bounds(new Vector3(0.2f, 0.75f, 0), new Vector3(0.7f, 0.15f, 0.3f));
+        }
+
+        private static Bounds BuildSnackCounter(Transform parent)
+        {
+            SpawnPart(parent, new Vector3(0, 0.45f, 0), new Vector3(0.9f, 0.05f, 0.5f), WoodColor);
+
+            foreach (var sx in new[] { -1f, 1f })
+            {
+                foreach (var sz in new[] { -1f, 1f })
+                {
+                    SpawnPart(parent, new Vector3(sx * 0.38f, 0.22f, sz * 0.18f), new Vector3(0.04f, 0.44f, 0.04f), LegColor);
+                }
+            }
+
+            SpawnPart(parent, new Vector3(-0.2f, 0.52f, 0), new Vector3(0.22f, 0.14f, 0.18f), Cardboard);
+            SpawnPart(parent, new Vector3(0.15f, 0.50f, 0.05f), new Vector3(0.18f, 0.10f, 0.15f), new Color(0.85f, 0.25f, 0.25f));
+
+            return new Bounds(new Vector3(0, 0.4f, 0), new Vector3(1.1f, 0.9f, 0.7f));
         }
 
         private static Bounds BuildDefault(Transform parent)

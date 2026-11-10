@@ -78,7 +78,13 @@ namespace VirtualOffice.Core
         Printer,
         Crate,
         Sofa,
-        Cooler
+        Cooler,
+        ExecDesk,      // 운영대표 집무실 등 — 일반 Desks보다 큰 1인 책상 + 캐비닛
+        Cctv,          // 내외부 연결공간(보안 면담실) 천장 CCTV
+        CallBell,      // 내외부 연결공간 호출벨/인터폰
+        Counter,       // 내외부 연결공간 면담 창구(반칸막이+유리창)
+        DocSet,        // 심의회실 책상 위 서류봉투 + 노란/파란 파일홀더
+        SnackCounter   // 공용간식대
     }
 
     [Serializable]

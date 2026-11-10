@@ -30,7 +30,10 @@ namespace VirtualOffice.Core
             {
                 BuildPlanning(),
                 BuildProgress(),
+                BuildProgressStorage(),
                 BuildOperation(),
+                BuildOpsSearchRoom(),
+                BuildOpsStorage(),
                 BuildData(),
                 BuildHub(),
                 BuildReview(),
@@ -271,6 +274,24 @@ namespace VirtualOffice.Core
             return room;
         }
 
+        // ---- 진행팀 물품창고 (진행팀실 내 파티션) ----
+
+        private static RoomData BuildProgressStorage()
+        {
+            var room = NewRoom(
+                "progress_storage", "물품창고(진행팀)", "진행팀 · 합숙 물품 보관",
+                new Vector3(2.2f, 2.6f, 1.8f),
+                new Color32(0x2e, 0x55, 0x92, 0xff),
+                new Vector4(0.2250f, 0.0900f, 0.0579f, 0.8200f),
+                nestedIn: "progress");
+
+            AddFurniture(room, FurnitureKind.Crate, new Vector3(-0.6f, 0f, -0.3f), "간식 창고(과자 등 공용·개인간식)");
+            AddFurniture(room, FurnitureKind.Crate, new Vector3(0.6f, 0f, -0.3f), "세제 창고(세탁비누·청소용품)");
+            AddFurniture(room, FurnitureKind.Crate, new Vector3(0f, 0f, 0.9f), "학용품 창고(A4·독서대·알람시계 등 종류별 보관)");
+
+            return room;
+        }
+
         // ---- 운영팀실 ----
 
         private static RoomData BuildOperation()
@@ -386,6 +407,40 @@ namespace VirtualOffice.Core
             return room;
         }
 
+        // ---- 인터넷 검색실 + 운영대표 집무실 (운영팀실 내 파티션) ----
+
+        private static RoomData BuildOpsSearchRoom()
+        {
+            var room = NewRoom(
+                "ops_search", "인터넷 검색실", "운영대표 · 인터넷 검색 지원",
+                new Vector3(2.4f, 2.6f, 2.0f),
+                new Color32(0x27, 0x52, 0x97, 0xff),
+                new Vector4(0.2907f, 0.0455f, 0.1174f, 0.4546f),
+                nestedIn: "operation");
+
+            AddFurniture(room, FurnitureKind.Desks, new Vector3(-0.7f, 0f, -0.5f), "인터넷 연결 PC (2대, 위원 자료조사용)");
+            AddFurniture(room, FurnitureKind.ExecDesk, new Vector3(0.7f, 0f, 0.6f), "운영대표 집무실 책상");
+
+            return room;
+        }
+
+        // ---- 운영팀 창고 (운영팀실 내 파티션) ----
+
+        private static RoomData BuildOpsStorage()
+        {
+            var room = NewRoom(
+                "ops_storage", "운영팀 창고", "운영팀 · 심사본/임차물품 보관",
+                new Vector3(2.4f, 2.6f, 2.0f),
+                new Color32(0x27, 0x52, 0x97, 0xff),
+                new Vector4(0.2907f, 0.5001f, 0.1174f, 0.4545f),
+                nestedIn: "operation");
+
+            AddFurniture(room, FurnitureKind.Crate, new Vector3(-0.5f, 0f, 0f), "심사본 보관 창고(PT박스)");
+            AddFurniture(room, FurnitureKind.Crate, new Vector3(0.5f, 0f, 0f), "노트북 등 임차 물품 창고");
+
+            return room;
+        }
+
         // ---- 자료보관실 (운영팀실 내 파티션) ----
 
         private static RoomData BuildData()
@@ -427,20 +482,26 @@ namespace VirtualOffice.Core
             return room;
         }
 
-        // ---- 내외부 소통 공간 ----
-
+        // ---- 내외부 연결공간 (보안 면담실) ----
+        //
+        // 주의: 원래 "라운지/입소식 공간" 가정으로 만들었던 방인데, 사용자가 실제 구조를
+        // "보안 합숙 공간 — 내부와 외부가 좁은 공간에서 창구로 면담하고, CCTV가 있고,
+        // 벨을 눌러 소통하는 곳"이라고 정정해줘서 치수·가구를 이에 맞게 교체함. 아래
+        // schedules(입소식·전체 안내 등)는 2D 프로토타입에서 포팅한 내용이 그대로 남아
+        // 있는데, 실제 입소식은 크리스탈홀·이상설홀 같은 별도 대강당에서 열린다는 걸
+        // 이번에 읽은 진행팀 체크리스트(doc3)로 확인했음 — 이 방의 업무 목록도 손봐야
+        // 하는지는 사용자 확인 필요(일단 내용은 그대로 둠).
         private static RoomData BuildHub()
         {
             var room = NewRoom(
-                "hub", "내외부 소통 공간", "전체 공용 · 입소식/브리핑",
-                new Vector3(5.0f, 2.6f, 4.0f),
+                "hub", "내외부 연결공간", "보안 면담실 · 내부-외부 창구 면담",
+                new Vector3(2.4f, 2.6f, 1.8f),
                 new Color32(0xa9, 0x82, 0x3f, 0xff),
                 new Vector4(0.5007f, 0.0455f, 0.1304f, 0.9091f));
 
-            AddFurniture(room, FurnitureKind.Table, new Vector3(0f, 0f, 0.25f), "라운지 테이블");
-            AddFurniture(room, FurnitureKind.Sofa, new Vector3(-1.43f, 0f, 1.4f), "소파");
-            AddFurniture(room, FurnitureKind.Cooler, new Vector3(2.0f, 0f, -1.53f), "정수기");
-            AddFurniture(room, FurnitureKind.Tv, new Vector3(0f, 1.3f, -1.92f), "TV");
+            AddFurniture(room, FurnitureKind.Counter, new Vector3(0f, 0f, 0f), "면담 창구(내부-외부 칸막이, 유리창)");
+            AddFurniture(room, FurnitureKind.CallBell, new Vector3(-0.9f, 1.1f, -0.85f), "호출벨(인터폰) — 내부/외부 소통");
+            AddFurniture(room, FurnitureKind.Cctv, new Vector3(0f, 1.25f, -0.8f), "CCTV");
 
             FillCommonSchedules(room,
                 d1: new[] { "입소식 준비 회의(진행팀 주관)", "집결지-합숙장소 간 인솔 동선 안내" },
@@ -464,16 +525,19 @@ namespace VirtualOffice.Core
 
             AddFurniture(room, FurnitureKind.Table, new Vector3(-0.65f, 0f, -0.5f), "심의 회의테이블 (8인)");
             AddFurniture(room, FurnitureKind.Desks, new Vector3(1.83f, 0f, -2.08f), "개별 심사용 PC·듀얼모니터");
-            AddFurniture(room, FurnitureKind.Shelf, new Vector3(-2.75f, 0f, 1.6f), "도서서가");
+            AddFurniture(room, FurnitureKind.DocSet, new Vector3(1.4f, 0f, -1.6f), "서류봉투·노란색/파란색 파일홀더 (입소 전날까지 책상에 세팅)");
+            AddFurniture(room, FurnitureKind.Shelf, new Vector3(-2.75f, 0f, 1.6f), "심사본 서가 (위원별로 분류되어 꽂혀 있음)");
             AddFurniture(room, FurnitureKind.Whiteboard, new Vector3(-2.59f, 1.3f, -2.12f), "화이트보드");
             AddFurniture(room, FurnitureKind.Printer, new Vector3(-1.62f, 0f, -1.94f), "A4 프린터");
             AddFurniture(room, FurnitureKind.Tv, new Vector3(-0.91f, 1.3f, -2.48f), "TV (PC 연결)");
+            AddFurniture(room, FurnitureKind.SnackCounter, new Vector3(0f, 0f, 2.3f), "공용간식대(과자 등 구비, 심의회실 입구)");
 
             FillCommonSchedules(room,
                 d1: new[] {
                     "집결지 인솔 입소 및 명찰 수령",
                     "위원 준수사항 고지 수령(검정 관련 사항 비공개, 외출·외박 금지, 공정성 훼손 행위 금지 등)",
-                    "서약서·업무이행약정서 서명, 사실확인서·개인정보수집이용동의서 제출"
+                    "서약서·업무이행약정서 서명, 사실확인서·개인정보수집이용동의서 제출",
+                    "(진행팀 세팅 확인) 책상 위 서류봉투·노란색/파란색 파일홀더가 입소 전날까지 놓여 있는지 확인"
                 },
                 d2: new[] {
                     "기초조사/본심사 연수 참여(교육과정·검정기준·편찬 유의점·보안교육 등)",
