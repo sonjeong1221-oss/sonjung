@@ -230,6 +230,7 @@ namespace VirtualOffice.Core
                 case FurnitureKind.Counter: return BuildCounter(parent);
                 case FurnitureKind.DocSet: return BuildDocSet(parent);
                 case FurnitureKind.SnackCounter: return BuildSnackCounter(parent);
+                case FurnitureKind.SideTable: return BuildSideTable(parent);
                 default: return BuildDefault(parent);
             }
         }
@@ -256,7 +257,7 @@ namespace VirtualOffice.Core
                 var mouse = LoadModel("computerMouse");
                 if (mouse != null) SpawnModel(parent, mouse, deskAnchor + new Vector3(0.22f, deskTopY, 0.1f), 180f);
 
-                SpawnModel(parent, chair, deskAnchor + new Vector3(0, 0, 0.65f), 0f); // chairDesk는 기본 방향이 이미 책상 쪽(0도)
+                SpawnModel(parent, chair, deskAnchor + new Vector3(0, 0, 0.42f), 0f); // chairDesk는 기본 방향이 이미 책상 쪽(0도) — 책상에 더 가깝게
 
                 return LocalBoundsOf(parent);
             }
@@ -553,6 +554,28 @@ namespace VirtualOffice.Core
             SpawnPart(parent, new Vector3(0.15f, 0.50f, 0.05f), new Vector3(0.18f, 0.10f, 0.15f), new Color(0.85f, 0.25f, 0.25f));
 
             return new Bounds(new Vector3(0, 0.4f, 0), new Vector3(1.1f, 0.9f, 0.7f));
+        }
+
+        private static Bounds BuildSideTable(Transform parent)
+        {
+            var sideTable = LoadModel("sideTable");
+            if (sideTable != null)
+            {
+                SpawnModel(parent, sideTable, Vector3.zero);
+                return LocalBoundsOf(parent);
+            }
+
+            SpawnPart(parent, new Vector3(0, 0.45f, 0), new Vector3(0.55f, 0.04f, 0.45f), WoodColor);
+            float hx = 0.23f, hz = 0.18f;
+            foreach (var sx in new[] { -1f, 1f })
+            {
+                foreach (var sz in new[] { -1f, 1f })
+                {
+                    SpawnPart(parent, new Vector3(sx * hx, 0.22f, sz * hz), new Vector3(0.04f, 0.44f, 0.04f), LegColor);
+                }
+            }
+
+            return new Bounds(new Vector3(0, 0.25f, 0), new Vector3(0.65f, 0.5f, 0.55f));
         }
 
         private static Bounds BuildDefault(Transform parent)

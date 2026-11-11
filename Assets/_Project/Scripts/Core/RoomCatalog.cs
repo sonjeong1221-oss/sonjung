@@ -526,7 +526,8 @@ namespace VirtualOffice.Core
             AddFurniture(room, FurnitureKind.DocSet, new Vector3(1.4f, 0f, -1.6f), "서류봉투·노란색/파란색 파일홀더 (입소 전날까지 책상에 세팅)");
             AddFurniture(room, FurnitureKind.Shelf, new Vector3(-2.75f, 0f, 1.6f), "심사본 서가 (위원별로 분류되어 꽂혀 있음)");
             AddFurniture(room, FurnitureKind.Whiteboard, new Vector3(-2.59f, 1.3f, -2.12f), "화이트보드");
-            AddFurniture(room, FurnitureKind.Printer, new Vector3(-1.62f, 0f, -1.94f), "A4 프린터");
+            AddFurniture(room, FurnitureKind.SideTable, new Vector3(2.75f, 0f, -2.0f), "보조 테이블(프린터용, 개별 PC 책상 옆)");
+            AddFurniture(room, FurnitureKind.Printer, new Vector3(2.75f, 0.45f, -2.0f), "A4 프린터 (보조 테이블 위)");
             AddFurniture(room, FurnitureKind.Tv, new Vector3(-0.91f, 1.3f, -2.48f), "TV (PC 연결)");
             AddFurniture(room, FurnitureKind.SnackCounter, new Vector3(0f, 0f, 2.3f), "공용간식대(과자 등 구비, 심의회실 입구)");
 
