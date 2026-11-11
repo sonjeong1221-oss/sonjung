@@ -540,7 +540,38 @@ namespace VirtualOffice.Core
             // 그룹 전체에 콜라이더 하나만 쓰는 기존 규칙과 맞추려 프리팹에 딸려온 콜라이더는 제거
             foreach (var col in go.GetComponentsInChildren<Collider>()) Destroy(col);
 
+            FixUrpShader(go);
+
             return go;
+        }
+
+        /// 임포트된 FBX(Kenney 에셋 등)는 재질이 내장된 채로 들어와 구버전(Built-in) Standard
+        /// 셰이더를 쓰는 경우가 많다 — URP 프로젝트에서 그대로 두면 핑크(에러 셰이더)로 보인다.
+        /// 에디터의 "Render Pipeline Converter"로 미리 변환해두는 방법도 있지만(에셋이 외부 .mat
+        /// 파일로 추출돼 있어야 동작), 내장 재질까지 포함해 항상 안전하게 적용되도록 런타임에
+        /// 인스턴스마다 자동으로 셰이더를 바꿔준다(텍스처·색상은 그대로 옮김).
+        private static void FixUrpShader(GameObject root)
+        {
+            Shader urpLit = Shader.Find("Universal Render Pipeline/Lit");
+            if (urpLit == null) return;
+
+            foreach (var renderer in root.GetComponentsInChildren<Renderer>())
+            {
+                var mats = renderer.materials; // 접근하는 순간 렌더러 전용 인스턴스로 복제됨(원본 에셋은 안 건드림)
+                for (int i = 0; i < mats.Length; i++)
+                {
+                    var mat = mats[i];
+                    if (mat == null || mat.shader == urpLit) continue;
+
+                    Texture mainTex = mat.HasProperty("_MainTex") ? mat.GetTexture("_MainTex") : null;
+                    Color color = mat.HasProperty("_Color") ? mat.GetColor("_Color") : Color.white;
+
+                    mat.shader = urpLit;
+                    if (mainTex != null && mat.HasProperty("_BaseMap")) mat.SetTexture("_BaseMap", mainTex);
+                    if (mat.HasProperty("_BaseColor")) mat.SetColor("_BaseColor", color);
+                }
+                renderer.materials = mats;
+            }
         }
 
         /// parent(가구 그룹 Transform) 아래 실제로 배치된 모델들의 렌더러를 모아
