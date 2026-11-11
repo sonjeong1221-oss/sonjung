@@ -242,15 +242,21 @@ namespace VirtualOffice.Core
 
             if (desk != null && chair != null && screen != null)
             {
-                SpawnModel(parent, desk, new Vector3(0, 0, -0.1f), 180f);
-                SpawnModel(parent, screen, new Vector3(0, 0.72f, -0.25f), 180f);
+                // desk 모델은 피벗이 중앙이 아니라 한쪽 구석에 있어(실측: Center 0.572/0.307/0.296,
+                // Size 1.175/0.615/0.624) — 180도 회전 후에도 책상이 그룹 원점에 오도록 보정한
+                // 위치(DeskAnchor)를 기준으로 모니터·키보드·마우스·의자를 그 위에 배치한다.
+                Vector3 deskAnchor = new Vector3(0.572f, 0f, 0.196f);
+                float deskTopY = 0.615f;
+
+                SpawnModel(parent, desk, deskAnchor, 180f);
+                SpawnModel(parent, screen, deskAnchor + new Vector3(0, deskTopY, -0.15f), 180f);
 
                 var keyboard = LoadModel("computerKeyboard");
-                if (keyboard != null) SpawnModel(parent, keyboard, new Vector3(0, 0.72f, 0.0f), 180f);
+                if (keyboard != null) SpawnModel(parent, keyboard, deskAnchor + new Vector3(0, deskTopY, 0.1f), 180f);
                 var mouse = LoadModel("computerMouse");
-                if (mouse != null) SpawnModel(parent, mouse, new Vector3(0.22f, 0.72f, 0.0f), 180f);
+                if (mouse != null) SpawnModel(parent, mouse, deskAnchor + new Vector3(0.22f, deskTopY, 0.1f), 180f);
 
-                SpawnModel(parent, chair, new Vector3(0, 0, 0.55f), 0f);
+                SpawnModel(parent, chair, deskAnchor + new Vector3(0, 0, 0.65f), 0f);
 
                 return LocalBoundsOf(parent);
             }
@@ -423,10 +429,14 @@ namespace VirtualOffice.Core
 
             if (desk != null && chair != null && screen != null)
             {
-                SpawnModel(parent, desk, new Vector3(0, 0, -0.1f), 180f);
-                SpawnModel(parent, screen, new Vector3(0, 0.72f, -0.25f), 180f);
-                SpawnModel(parent, chair, new Vector3(0, 0, 0.65f), 0f);
-                if (cabinet != null) SpawnModel(parent, cabinet, new Vector3(0.95f, 0f, 0.3f), 90f);
+                // desk 피벗 보정은 BuildDesks와 동일(실측 Center 0.572/0.307/0.296)
+                Vector3 deskAnchor = new Vector3(0.572f, 0f, 0.196f);
+                float deskTopY = 0.615f;
+
+                SpawnModel(parent, desk, deskAnchor, 180f);
+                SpawnModel(parent, screen, deskAnchor + new Vector3(0, deskTopY, -0.15f), 180f);
+                SpawnModel(parent, chair, deskAnchor + new Vector3(0, 0, 0.75f), 0f);
+                if (cabinet != null) SpawnModel(parent, cabinet, deskAnchor + new Vector3(1.0f, 0f, 0.1f), 90f);
 
                 return LocalBoundsOf(parent);
             }
