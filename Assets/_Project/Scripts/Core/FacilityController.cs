@@ -292,7 +292,11 @@ namespace VirtualOffice.Core
 
             if (table != null && chair != null)
             {
-                SpawnModel(parent, table, Vector3.zero);
+                // table 모델도 피벗이 중앙이 아니라 구석에 있어(실측: Center 0.673/0.261/0.358,
+                // Size 1.346/0.523/0.716) — 회전 없이 배치하므로 중심을 그대로 원점 반대 방향으로
+                // 밀어서 테이블 실제 중심이 그룹 원점(의자 링의 중심)에 오도록 보정한다.
+                Vector3 tableAnchor = new Vector3(-0.673f, 0f, -0.358f);
+                SpawnModel(parent, table, tableAnchor);
 
                 for (int i = 0; i < chairCount; i++)
                 {
