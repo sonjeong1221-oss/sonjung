@@ -370,21 +370,30 @@ namespace VirtualOffice.Core
 
         private static Bounds BuildShelf(Transform parent)
         {
-            var bookcase = LoadModel("bookcaseOpen");
+            var bookcase = LoadModel("bookcaseClosedWide");
             if (bookcase != null)
             {
-                SpawnModel(parent, bookcase, Vector3.zero);
+                // bookcaseClosedWide도 모서리 피벗(실측 Center 0.64/0.632/0.2, Size 1.28/1.264/0.4)
+                Vector3 bookcaseAnchor = new Vector3(-0.64f, 0f, -0.2f);
+                SpawnModel(parent, bookcase, bookcaseAnchor);
 
-                // 칸마다 책이 꽂혀 있는 모습 — books 모델 피벗은 미실측이라 대략적인 높이에
-                // 배치(정확한 선반 높이와 다를 수 있음, 눈으로 보고 숫자만 조정하면 됨)
+                // books도 모서리 피벗(실측 Center 0.1204/0.0831/0.0756, Size 0.2407/0.1662/0.1512).
+                // 회전 없이 그대로 놓으므로 오프셋만 빼서 중심을 맞추면 된다. 선반 4단(0.18~1.08,
+                // 책장 실측 높이 1.264 기준) × 가로 3줄로 꽂아 채운다.
                 var books = LoadModel("books");
                 if (books != null)
                 {
-                    float[] shelfHeights = { 0.15f, 0.55f, 0.95f, 1.35f };
+                    Vector3 booksPivotOffset = new Vector3(0.1203581f, 0f, 0.0756f);
+                    float[] shelfHeights = { 0.18f, 0.48f, 0.78f, 1.08f };
+                    float[] shelfXs = { -0.42f, -0.05f, 0.33f };
+
                     foreach (var h in shelfHeights)
                     {
-                        SpawnModel(parent, books, new Vector3(-0.15f, h, 0f), 0f);
-                        SpawnModel(parent, books, new Vector3(0.15f, h, 0f), 90f);
+                        foreach (var x in shelfXs)
+                        {
+                            var center = new Vector3(x, h, 0.1f);
+                            SpawnModel(parent, books, center - booksPivotOffset);
+                        }
                     }
                 }
 
