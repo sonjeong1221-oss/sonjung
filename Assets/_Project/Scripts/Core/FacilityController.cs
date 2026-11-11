@@ -256,7 +256,7 @@ namespace VirtualOffice.Core
                 var mouse = LoadModel("computerMouse");
                 if (mouse != null) SpawnModel(parent, mouse, deskAnchor + new Vector3(0.22f, deskTopY, 0.1f), 180f);
 
-                SpawnModel(parent, chair, deskAnchor + new Vector3(0, 0, 0.65f), 180f); // chair 모델 정면 반전 보정
+                SpawnModel(parent, chair, deskAnchor + new Vector3(0, 0, 0.65f), 0f); // chairDesk는 기본 방향이 이미 책상 쪽(0도)
 
                 return LocalBoundsOf(parent);
             }
@@ -453,7 +453,7 @@ namespace VirtualOffice.Core
 
                 SpawnModel(parent, desk, deskAnchor, 180f);
                 SpawnModel(parent, screen, deskAnchor + new Vector3(0, deskTopY, -0.15f), 180f);
-                SpawnModel(parent, chair, deskAnchor + new Vector3(0, 0, 0.75f), 180f); // chair 모델 정면 반전 보정
+                SpawnModel(parent, chair, deskAnchor + new Vector3(0, 0, 0.75f), 0f); // chairDesk는 기본 방향이 이미 책상 쪽(0도)
                 if (cabinet != null) SpawnModel(parent, cabinet, deskAnchor + new Vector3(1.0f, 0f, 0.1f), 90f);
 
                 return LocalBoundsOf(parent);
