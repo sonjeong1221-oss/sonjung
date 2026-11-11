@@ -8,11 +8,13 @@ namespace VirtualOffice.Core
     ///
     /// 정식 버전(개발명세서 4·6절)은 방마다 Additive 서브씬 + 실제(구매/다운로드한)
     /// 가구 에셋을 쓰지만, 이 세션은 네트워크가 제한돼 있어 3D 에셋을 직접 받아올
-    /// 수 없다(CLAUDE.md 세션 제약 — 가구 에셋은 사용자가 로컬 에디터의 Asset
-    /// Store에서 받아야 함). 그 전까지 품질을 최대한 끌어올리기 위해, 단일 큐브가
-    /// 아니라 책상+모니터+의자처럼 여러 프리미티브를 조합한 모양 + 조명을 코드로
-    /// 직접 구성한다(개발명세서 12절). 나중에 실제 에셋이 들어오면 아래
-    /// BuildFurnitureCluster의 각 분기만 프리팹 인스턴스화로 교체하면 된다.
+    /// 수 없다(CLAUDE.md 세션 제약 — 가구 에셋은 사용자가 로컬 에디터에서 받아
+    /// `Assets/_Project/Art/Furniture/Resources/`에 넣어야 함). 그래서 각 가구
+    /// 종류마다 "Resources.Load로 실제 모델(Kenney Furniture Kit)을 먼저 찾아보고,
+    /// 없으면 프리미티브 조합으로 대체"하는 구조로 짰다 — 사용자가 에셋을 더 받아
+    /// 넣을 때마다 코드 수정 없이 자동으로 실제 모델로 바뀐다. Desks/ExecDesk/Table/
+    /// Shelf/Tv/Sofa/Crate는 실제 모델 연결됨, Printer/Whiteboard/Cctv/CallBell/
+    /// Counter/DocSet/SnackCounter/Cooler는 해당 팩에 없어 프리미티브 그대로.
     public class FacilityController : MonoBehaviour
     {
         public static FacilityController Instance { get; private set; }
@@ -225,6 +227,26 @@ namespace VirtualOffice.Core
 
         private static Bounds BuildDesks(Transform parent)
         {
+            var desk = LoadModel("desk");
+            var chair = LoadModel("chairDesk");
+            var screen = LoadModel("computerScreen");
+
+            if (desk != null && chair != null && screen != null)
+            {
+                SpawnModel(parent, desk, new Vector3(0, 0, -0.1f), 180f);
+                SpawnModel(parent, screen, new Vector3(0, 0.72f, -0.25f), 180f);
+
+                var keyboard = LoadModel("computerKeyboard");
+                if (keyboard != null) SpawnModel(parent, keyboard, new Vector3(0, 0.72f, 0.0f), 180f);
+                var mouse = LoadModel("computerMouse");
+                if (mouse != null) SpawnModel(parent, mouse, new Vector3(0.22f, 0.72f, 0.0f), 180f);
+
+                SpawnModel(parent, chair, new Vector3(0, 0, 0.55f), 0f);
+
+                return LocalBoundsOf(parent);
+            }
+
+            // 실제 모델이 없으면(에셋 미도입) 기존 프리미티브 조합으로 대체
             SpawnPart(parent, new Vector3(0, 0.72f, 0), new Vector3(1.15f, 0.05f, 0.58f), WoodColor);
 
             float hx = 0.52f, hz = 0.24f;
@@ -247,6 +269,27 @@ namespace VirtualOffice.Core
 
         private static Bounds BuildTable(Transform parent)
         {
+            var table = LoadModel("table");
+            var chair = LoadModel("chair");
+
+            const int chairCount = 6;
+            float rx = 1.0f, rz = 0.65f;
+
+            if (table != null && chair != null)
+            {
+                SpawnModel(parent, table, Vector3.zero);
+
+                for (int i = 0; i < chairCount; i++)
+                {
+                    float ang = i * Mathf.PI * 2f / chairCount;
+                    var c = new Vector3(Mathf.Sin(ang) * rx, 0, Mathf.Cos(ang) * rz);
+                    float yaw = Mathf.Atan2(c.x, c.z) * Mathf.Rad2Deg + 180f;
+                    SpawnModel(parent, chair, c, yaw);
+                }
+
+                return LocalBoundsOf(parent);
+            }
+
             SpawnPart(parent, new Vector3(0, 0.74f, 0), new Vector3(1.6f, 0.06f, 0.95f), WoodColor);
 
             float hx = 0.72f, hz = 0.40f;
@@ -258,8 +301,6 @@ namespace VirtualOffice.Core
                 }
             }
 
-            const int chairCount = 6;
-            float rx = 1.0f, rz = 0.65f;
             for (int i = 0; i < chairCount; i++)
             {
                 float ang = i * Mathf.PI * 2f / chairCount;
@@ -273,6 +314,13 @@ namespace VirtualOffice.Core
 
         private static Bounds BuildShelf(Transform parent)
         {
+            var bookcase = LoadModel("bookcaseOpen");
+            if (bookcase != null)
+            {
+                SpawnModel(parent, bookcase, Vector3.zero);
+                return LocalBoundsOf(parent);
+            }
+
             SpawnPart(parent, new Vector3(0, 0.9f, 0), new Vector3(0.9f, 1.8f, 0.35f), WoodDark);
             for (int i = 1; i < 4; i++)
             {
@@ -285,6 +333,13 @@ namespace VirtualOffice.Core
 
         private static Bounds BuildTv(Transform parent)
         {
+            var tv = LoadModel("televisionModern");
+            if (tv != null)
+            {
+                SpawnModel(parent, tv, Vector3.zero);
+                return LocalBoundsOf(parent);
+            }
+
             SpawnPart(parent, Vector3.zero, new Vector3(1.0f, 0.6f, 0.06f), DarkBezel);
             SpawnPart(parent, new Vector3(0, 0, 0.035f), new Vector3(0.92f, 0.52f, 0.01f), ScreenGlow, 0.65f);
 
@@ -309,6 +364,16 @@ namespace VirtualOffice.Core
 
         private static Bounds BuildCrate(Transform parent)
         {
+            var closedBox = LoadModel("cardboardBoxClosed");
+            var openBox = LoadModel("cardboardBoxOpen");
+
+            if (closedBox != null && openBox != null)
+            {
+                SpawnModel(parent, closedBox, new Vector3(-0.3f, 0f, 0f));
+                SpawnModel(parent, openBox, new Vector3(0.3f, 0f, 0.05f));
+                return LocalBoundsOf(parent);
+            }
+
             SpawnPart(parent, new Vector3(-0.3f, 0.25f, 0), new Vector3(0.5f, 0.5f, 0.5f), Cardboard);
             SpawnPart(parent, new Vector3(0.3f, 0.22f, 0.05f), new Vector3(0.45f, 0.44f, 0.45f), Cardboard);
 
@@ -317,6 +382,13 @@ namespace VirtualOffice.Core
 
         private static Bounds BuildSofa(Transform parent)
         {
+            var sofa = LoadModel("loungeSofa");
+            if (sofa != null)
+            {
+                SpawnModel(parent, sofa, Vector3.zero);
+                return LocalBoundsOf(parent);
+            }
+
             SpawnPart(parent, new Vector3(0, 0.22f, 0), new Vector3(1.5f, 0.3f, 0.75f), SofaFabric);
             SpawnPart(parent, new Vector3(0, 0.5f, -0.30f), new Vector3(1.5f, 0.45f, 0.12f), SofaFabric);
             SpawnPart(parent, new Vector3(-0.68f, 0.4f, 0), new Vector3(0.15f, 0.35f, 0.75f), SofaFabric);
@@ -335,6 +407,21 @@ namespace VirtualOffice.Core
 
         private static Bounds BuildExecDesk(Transform parent)
         {
+            var desk = LoadModel("desk");
+            var chair = LoadModel("chairDesk");
+            var screen = LoadModel("computerScreen");
+            var cabinet = LoadModel("cabinetTelevision"); // 낮은 목재 캐비닛 모양이라 서류장 대용으로 재사용
+
+            if (desk != null && chair != null && screen != null)
+            {
+                SpawnModel(parent, desk, new Vector3(0, 0, -0.1f), 180f);
+                SpawnModel(parent, screen, new Vector3(0, 0.72f, -0.25f), 180f);
+                SpawnModel(parent, chair, new Vector3(0, 0, 0.65f), 0f);
+                if (cabinet != null) SpawnModel(parent, cabinet, new Vector3(0.95f, 0f, 0.3f), 90f);
+
+                return LocalBoundsOf(parent);
+            }
+
             SpawnPart(parent, new Vector3(0, 0.75f, 0), new Vector3(1.5f, 0.06f, 0.75f), WoodDark);
 
             float hx = 0.68f, hz = 0.32f;
@@ -432,6 +519,40 @@ namespace VirtualOffice.Core
             SpawnPart(chair.transform, new Vector3(-lx, 0.1f, lz), new Vector3(0.03f, 0.2f, 0.03f), LegColor);
             SpawnPart(chair.transform, new Vector3(lx, 0.1f, -lz), new Vector3(0.03f, 0.2f, 0.03f), LegColor);
             SpawnPart(chair.transform, new Vector3(-lx, 0.1f, -lz), new Vector3(0.03f, 0.2f, 0.03f), LegColor);
+        }
+
+        // ---- 실제 모델(Resources/Furniture/*) 로딩 — 없으면 null, 호출부에서 프리미티브로 대체 ----
+
+        private static GameObject LoadModel(string name)
+        {
+            return Resources.Load<GameObject>("Furniture/" + name);
+        }
+
+        private static GameObject SpawnModel(Transform parent, GameObject prefab, Vector3 localPos, float yaw = 0f)
+        {
+            var go = Object.Instantiate(prefab, parent);
+            go.transform.localPosition = localPos;
+            go.transform.localRotation = Quaternion.Euler(0f, yaw, 0f);
+            go.transform.localScale = Vector3.one;
+
+            // 그룹 전체에 콜라이더 하나만 쓰는 기존 규칙과 맞추려 프리팹에 딸려온 콜라이더는 제거
+            foreach (var col in go.GetComponentsInChildren<Collider>()) Destroy(col);
+
+            return go;
+        }
+
+        /// parent(가구 그룹 Transform) 아래 실제로 배치된 모델들의 렌더러를 모아
+        /// parent 기준 로컬 Bounds로 변환 — 실제 모델 크기를 몰라도 콜라이더 크기를 맞출 수 있다.
+        private static Bounds LocalBoundsOf(Transform parent)
+        {
+            var renderers = parent.GetComponentsInChildren<Renderer>();
+            if (renderers.Length == 0) return new Bounds(Vector3.zero, Vector3.one * 0.5f);
+
+            Bounds world = renderers[0].bounds;
+            for (int i = 1; i < renderers.Length; i++) world.Encapsulate(renderers[i].bounds);
+
+            Vector3 localCenter = parent.InverseTransformPoint(world.center);
+            return new Bounds(localCenter, world.size);
         }
 
         // ---- low-level helpers ----
