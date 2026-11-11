@@ -525,7 +525,9 @@ namespace VirtualOffice.Core
 
         private static GameObject LoadModel(string name)
         {
-            return Resources.Load<GameObject>("Furniture/" + name);
+            // Assets/_Project/Art/Furniture/Resources/<name>.fbx — "Resources" 바로 밑에
+            // 모델이 있으므로 접두사 없이 이름만으로 찾는다(Unity Resources.Load 규칙).
+            return Resources.Load<GameObject>(name);
         }
 
         private static GameObject SpawnModel(Transform parent, GameObject prefab, Vector3 localPos, float yaw = 0f)
