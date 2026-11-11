@@ -256,7 +256,7 @@ namespace VirtualOffice.Core
                 var mouse = LoadModel("computerMouse");
                 if (mouse != null) SpawnModel(parent, mouse, deskAnchor + new Vector3(0.22f, deskTopY, 0.1f), 180f);
 
-                SpawnModel(parent, chair, deskAnchor + new Vector3(0, 0, 0.65f), 0f);
+                SpawnModel(parent, chair, deskAnchor + new Vector3(0, 0, 0.65f), 180f); // chair 모델 정면 반전 보정
 
                 return LocalBoundsOf(parent);
             }
@@ -308,7 +308,9 @@ namespace VirtualOffice.Core
                 {
                     float ang = i * Mathf.PI * 2f / chairCount;
                     var c = new Vector3(Mathf.Sin(ang) * rx, 0, Mathf.Cos(ang) * rz);
-                    float yaw = Mathf.Atan2(c.x, c.z) * Mathf.Rad2Deg + 180f;
+                    // chair 모델의 "정면"이 기본적으로 우리가 가정한 반대쪽을 보고 있어
+                    // (+180을 빼서 테이블 쪽을 보도록 뒤집음)
+                    float yaw = Mathf.Atan2(c.x, c.z) * Mathf.Rad2Deg;
 
                     float yawRad = yaw * Mathf.Deg2Rad;
                     float rotatedX = chairPivotOffset.x * Mathf.Cos(yawRad) + chairPivotOffset.y * Mathf.Sin(yawRad);
@@ -451,7 +453,7 @@ namespace VirtualOffice.Core
 
                 SpawnModel(parent, desk, deskAnchor, 180f);
                 SpawnModel(parent, screen, deskAnchor + new Vector3(0, deskTopY, -0.15f), 180f);
-                SpawnModel(parent, chair, deskAnchor + new Vector3(0, 0, 0.75f), 0f);
+                SpawnModel(parent, chair, deskAnchor + new Vector3(0, 0, 0.75f), 180f); // chair 모델 정면 반전 보정
                 if (cabinet != null) SpawnModel(parent, cabinet, deskAnchor + new Vector3(1.0f, 0f, 0.1f), 90f);
 
                 return LocalBoundsOf(parent);
