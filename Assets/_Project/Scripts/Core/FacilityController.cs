@@ -11,21 +11,22 @@ namespace VirtualOffice.Core
     /// 수 없다(CLAUDE.md 세션 제약 — 가구 에셋은 사용자가 로컬 에디터에서 받아
     /// `Assets/_Project/Art/Furniture/Resources/`에 넣어야 함). 그래서 각 가구
     /// 종류마다 "Resources.Load로 실제 모델(Kenney Furniture Kit)을 먼저 찾아보고,
-    /// 없으면 프리미티브 조합으로 대체"하는 구조로 짰다. 단일 모델(Shelf/Tv/Sofa)은
-    /// 항상 실제 모델을 쓰고, 여러 부품을 하드코딩된 상대 위치로 조합하는 가구
-    /// (Desks/ExecDesk/Table/Crate)는 모델 피벗·실제 치수가 프리미티브 가정과 달라
-    /// 스폰 지점과 겹치는 문제가 확인되어 `UseRealComposedModels`로 임시 꺼둠(검증되면
-    /// true로). Printer/Whiteboard/Cctv/CallBell/Counter/DocSet/SnackCounter/Cooler는
-    /// 해당 팩에 없어 프리미티브 그대로.
+    /// 없으면 프리미티브 조합으로 대체"하는 구조로 짰다. 처음엔 FBX 단위 인식 오류로
+    /// 모델 전체가 실제보다 훨씬 크게 들어와 있었는데(desk 기준 약 7m), 사용자가
+    /// Resources 폴더 전체(140개)에 Model Import Settings의 Scale Factor를 0.16으로
+    /// 일괄 적용해 해결함(desk 실측 약 1.17m로 정상화 확인). 단일 모델(Shelf/Tv/Sofa)과
+    /// 여러 부품을 조합하는 가구(Desks/ExecDesk/Table/Crate) 모두 실제 모델을 쓴다.
+    /// Printer/Whiteboard/Cctv/CallBell/Counter/DocSet/SnackCounter/Cooler는 해당
+    /// 팩에 없어 프리미티브 그대로.
     public class FacilityController : MonoBehaviour
     {
         public static FacilityController Instance { get; private set; }
 
-        /// 여러 부품(책상+의자+모니터처럼)을 하드코딩된 상대 위치로 조합하는 가구만
-        /// 모델 피벗/실제 치수가 달라 스폰 지점과 겹치거나 비율이 안 맞는 문제가 확인돼
-        /// 임시로 꺼둔다(false = 해당 가구만 프리미티브 사용). 단일 모델(책장·TV·소파)은
-        /// 이 문제와 무관해 항상 실제 모델을 쓴다. 조합형도 치수 검증되면 true로.
-        private const bool UseRealComposedModels = false;
+        /// Kenney Furniture Kit 전체가 FBX 단위 인식 오류로 실제보다 훨씬 크게 임포트돼
+        /// 있었음(desk 기준 Scale Factor 1→약 7m, 0.16으로 재조정 후 약 1.17m — 정상
+        /// 책상 크기와 일치 확인됨). 사용자가 Resources 폴더의 모델 140개 전체에
+        /// Scale Factor 0.16을 일괄 적용해 치수 문제를 해결했으므로 다시 켠다.
+        private const bool UseRealComposedModels = true;
 
         private static readonly Color WoodColor = new Color(0.62f, 0.47f, 0.30f);
         private static readonly Color WoodMid = new Color(0.52f, 0.39f, 0.25f);
