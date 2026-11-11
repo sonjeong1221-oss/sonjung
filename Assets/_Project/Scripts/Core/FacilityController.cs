@@ -298,12 +298,24 @@ namespace VirtualOffice.Core
                 Vector3 tableAnchor = new Vector3(-0.673f, 0f, -0.358f);
                 SpawnModel(parent, table, tableAnchor);
 
+                // chair 모델도 피벗이 발 한쪽 모서리에 있어(실측: Center 0.16/0.368/0.16,
+                // Size 0.32/0.736/0.32 — 즉 XZ 기준 (0,0)~(0.32,0.32) 모서리에 피벗). 의자마다
+                // 회전각(yaw)이 달라 이 오프셋이 도는 방향으로 같이 돌아가므로, 각도별로 회전시켜
+                // 보정해야 전부 같은 자리(링 위치 c)에 중심이 오게 된다.
+                Vector2 chairPivotOffset = new Vector2(0.16f, 0.16f);
+
                 for (int i = 0; i < chairCount; i++)
                 {
                     float ang = i * Mathf.PI * 2f / chairCount;
                     var c = new Vector3(Mathf.Sin(ang) * rx, 0, Mathf.Cos(ang) * rz);
                     float yaw = Mathf.Atan2(c.x, c.z) * Mathf.Rad2Deg + 180f;
-                    SpawnModel(parent, chair, c, yaw);
+
+                    float yawRad = yaw * Mathf.Deg2Rad;
+                    float rotatedX = chairPivotOffset.x * Mathf.Cos(yawRad) + chairPivotOffset.y * Mathf.Sin(yawRad);
+                    float rotatedZ = -chairPivotOffset.x * Mathf.Sin(yawRad) + chairPivotOffset.y * Mathf.Cos(yawRad);
+                    var spawnPos = c - new Vector3(rotatedX, 0, rotatedZ);
+
+                    SpawnModel(parent, chair, spawnPos, yaw);
                 }
 
                 return LocalBoundsOf(parent);
