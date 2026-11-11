@@ -128,6 +128,9 @@ namespace VirtualOffice.Core
             AddFurniture(room, FurnitureKind.Shelf, new Vector3(1.63f, 0f, -1.08f), "도서서가 (3조)");
             AddFurniture(room, FurnitureKind.Sofa, new Vector3(1.35f, 0f, 1.26f), "소파");
             AddFurniture(room, FurnitureKind.Tv, new Vector3(-1.3f, 1.3f, -1.79f), "TV (PC 연결)");
+            // 심의회실과 동일한 조건으로 맞춤: 책상 옆 보조 테이블 + 프린터
+            AddFurniture(room, FurnitureKind.SideTable, new Vector3(-0.9f, 0f, -0.6f), "보조 테이블(프린터용)");
+            AddFurniture(room, FurnitureKind.Printer, new Vector3(-0.9f, 0.45f, -0.6f), "A4 프린터 (보조 테이블 위)");
 
             FillCommonSchedules(room,
                 d1: new[] {
@@ -170,7 +173,9 @@ namespace VirtualOffice.Core
                 new Color32(0x3a, 0x6c, 0xb5, 0xff),
                 new Vector4(0.1395f, 0.0455f, 0.1434f, 0.9091f));
 
-            AddFurniture(room, FurnitureKind.Desks, new Vector3(0.12f, 0f, -1.37f), "QR·인터넷 검색실 책상");
+            // T자 배치 3인 책상(PC 2대 + 의자만 1대) — QR·인터넷 검색 업무 포함
+            AddFurniture(room, FurnitureKind.TriDeskCluster, new Vector3(0.12f, 0f, -1.37f), "QR·인터넷 검색실 책상(T자, PC 2대)");
+            AddFurniture(room, FurnitureKind.Printer, new Vector3(1.3f, 0f, -1.7f), "복합기 프린터");
             AddFurniture(room, FurnitureKind.Crate, new Vector3(1.72f, 0f, -0.35f), "합숙 물품 박스");
             AddFurniture(room, FurnitureKind.Tv, new Vector3(-0.38f, 1.3f, -1.98f), "TV (PC 연결)");
 
@@ -288,6 +293,7 @@ namespace VirtualOffice.Core
             AddFurniture(room, FurnitureKind.Crate, new Vector3(-0.6f, 0f, -0.3f), "간식 창고(과자 등 공용·개인간식)");
             AddFurniture(room, FurnitureKind.Crate, new Vector3(0.6f, 0f, -0.3f), "세제 창고(세탁비누·청소용품)");
             AddFurniture(room, FurnitureKind.Crate, new Vector3(0f, 0f, 0.9f), "학용품 창고(A4·독서대·알람시계 등 종류별 보관)");
+            AddFurniture(room, FurnitureKind.Shelf, new Vector3(0.9f, 0f, 0.5f), "서가(물품 목록·서류 보관)");
 
             return room;
         }
@@ -302,9 +308,10 @@ namespace VirtualOffice.Core
                 new Color32(0x2f, 0x5f, 0xa8, 0xff),
                 new Vector4(0.2907f, 0.0455f, 0.2021f, 0.9091f));
 
-            AddFurniture(room, FurnitureKind.Desks, new Vector3(-2.47f, 0f, -1.33f), "데스크탑 PC·듀얼모니터 (7대)");
+            // T자 배치 3인 책상(PC 2대 + 의자만 1대)
+            AddFurniture(room, FurnitureKind.TriDeskCluster, new Vector3(-2.47f, 0f, -1.33f), "데스크탑 PC(T자, 2대) + 의자석");
             AddFurniture(room, FurnitureKind.Whiteboard, new Vector3(-2.13f, 1.3f, 1.47f), "화이트보드");
-            AddFurniture(room, FurnitureKind.Printer, new Vector3(-1.24f, 0f, 1.28f), "컬러복합기");
+            AddFurniture(room, FurnitureKind.Printer, new Vector3(-1.1f, 0f, -1.3f), "컬러복합기");
 
             FillCommonSchedules(room,
                 d1: new[] {
@@ -418,8 +425,9 @@ namespace VirtualOffice.Core
                 new Vector4(0.2907f, 0.0455f, 0.1174f, 0.4546f),
                 nestedIn: "operation");
 
-            AddFurniture(room, FurnitureKind.Desks, new Vector3(-0.7f, 0f, -0.5f), "인터넷 연결 PC (2대, 위원 자료조사용)");
-            AddFurniture(room, FurnitureKind.ExecDesk, new Vector3(0.7f, 0f, 0.6f), "운영대표 집무실 책상");
+            // 두 책상 세트를 일자로 나란히 배치
+            AddFurniture(room, FurnitureKind.Desks, new Vector3(-0.7f, 0f, 0f), "인터넷 연결 PC (2대, 위원 자료조사용)");
+            AddFurniture(room, FurnitureKind.ExecDesk, new Vector3(0.7f, 0f, 0f), "운영대표 집무실 책상");
 
             return room;
         }
@@ -437,6 +445,7 @@ namespace VirtualOffice.Core
 
             AddFurniture(room, FurnitureKind.Crate, new Vector3(-0.5f, 0f, 0f), "심사본 보관 창고(PT박스)");
             AddFurniture(room, FurnitureKind.Crate, new Vector3(0.5f, 0f, 0f), "노트북 등 임차 물품 창고");
+            AddFurniture(room, FurnitureKind.Shelf, new Vector3(0f, 0f, 0.8f), "서가(보관 목록·서류)");
 
             return room;
         }
@@ -569,10 +578,11 @@ namespace VirtualOffice.Core
                 new Color32(0xc0, 0x7a, 0x3e, 0xff),
                 new Vector4(0.8553f, 0.0455f, 0.1369f, 0.9091f));
 
-            AddFurniture(room, FurnitureKind.Desks, new Vector3(-1.39f, 0f, -0.68f), "데스크탑 PC (2대)");
+            // T자 배치 3인 책상(PC 2대 + 의자만 1대)
+            AddFurniture(room, FurnitureKind.TriDeskCluster, new Vector3(-1.39f, 0f, -0.68f), "데스크탑 PC(T자, 2대) + 의자석");
             AddFurniture(room, FurnitureKind.Sofa, new Vector3(0.48f, 0f, -0.68f), "소파");
             AddFurniture(room, FurnitureKind.Shelf, new Vector3(-1.57f, 0f, -1.12f), "도서서가");
-            AddFurniture(room, FurnitureKind.Printer, new Vector3(1.65f, 0f, -1.12f), "A4 프린터");
+            AddFurniture(room, FurnitureKind.Printer, new Vector3(-0.3f, 0f, -1.1f), "A4 프린터");
             AddFurniture(room, FurnitureKind.Crate, new Vector3(-1.34f, 0f, 1.27f), "보안·창고 물품");
             AddFurniture(room, FurnitureKind.Tv, new Vector3(0.27f, 1.3f, -1.79f), "TV (PC 연결)");
 

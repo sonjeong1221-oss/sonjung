@@ -231,6 +231,7 @@ namespace VirtualOffice.Core
                 case FurnitureKind.DocSet: return BuildDocSet(parent);
                 case FurnitureKind.SnackCounter: return BuildSnackCounter(parent);
                 case FurnitureKind.SideTable: return BuildSideTable(parent);
+                case FurnitureKind.TriDeskCluster: return BuildTriDeskCluster(parent);
                 default: return BuildDefault(parent);
             }
         }
@@ -250,12 +251,12 @@ namespace VirtualOffice.Core
                 float deskTopY = 0.615f;
 
                 SpawnModel(parent, desk, deskAnchor, 180f);
-                SpawnModel(parent, screen, deskAnchor + new Vector3(0, deskTopY, -0.15f), 180f);
+                SpawnModel(parent, screen, deskAnchor + new Vector3(0, deskTopY, -0.15f), 180f, tint: DarkBezel);
 
                 var keyboard = LoadModel("computerKeyboard");
-                if (keyboard != null) SpawnModel(parent, keyboard, deskAnchor + new Vector3(0, deskTopY, 0.1f), 180f);
+                if (keyboard != null) SpawnModel(parent, keyboard, deskAnchor + new Vector3(0, deskTopY, 0.1f), 180f, tint: DarkBezel);
                 var mouse = LoadModel("computerMouse");
-                if (mouse != null) SpawnModel(parent, mouse, deskAnchor + new Vector3(0.22f, deskTopY, 0.1f), 180f);
+                if (mouse != null) SpawnModel(parent, mouse, deskAnchor + new Vector3(0.22f, deskTopY, 0.1f), 180f, tint: DarkBezel);
 
                 SpawnModel(parent, chair, deskAnchor + new Vector3(0, 0, 0.42f), 0f); // chairDesk는 기본 방향이 이미 책상 쪽(0도) — 책상에 더 가깝게
 
@@ -333,12 +334,12 @@ namespace VirtualOffice.Core
                     if (screen != null)
                     {
                         var screenCenter = new Vector3(Mathf.Sin(ang) * screenRx, tableTopY, Mathf.Cos(ang) * screenRz);
-                        SpawnModel(parent, screen, screenCenter - RotatePivotOffset(screenPivotOffset, deviceYaw), deviceYaw);
+                        SpawnModel(parent, screen, screenCenter - RotatePivotOffset(screenPivotOffset, deviceYaw), deviceYaw, tint: DarkBezel);
                     }
                     if (keyboard != null)
                     {
                         var keyboardCenter = new Vector3(Mathf.Sin(ang) * keyboardRx, tableTopY, Mathf.Cos(ang) * keyboardRz);
-                        SpawnModel(parent, keyboard, keyboardCenter - RotatePivotOffset(keyboardPivotOffset, deviceYaw), deviceYaw);
+                        SpawnModel(parent, keyboard, keyboardCenter - RotatePivotOffset(keyboardPivotOffset, deviceYaw), deviceYaw, tint: DarkBezel);
                     }
                 }
 
@@ -373,6 +374,20 @@ namespace VirtualOffice.Core
             if (bookcase != null)
             {
                 SpawnModel(parent, bookcase, Vector3.zero);
+
+                // 칸마다 책이 꽂혀 있는 모습 — books 모델 피벗은 미실측이라 대략적인 높이에
+                // 배치(정확한 선반 높이와 다를 수 있음, 눈으로 보고 숫자만 조정하면 됨)
+                var books = LoadModel("books");
+                if (books != null)
+                {
+                    float[] shelfHeights = { 0.15f, 0.55f, 0.95f, 1.35f };
+                    foreach (var h in shelfHeights)
+                    {
+                        SpawnModel(parent, books, new Vector3(-0.15f, h, 0f), 0f);
+                        SpawnModel(parent, books, new Vector3(0.15f, h, 0f), 90f);
+                    }
+                }
+
                 return LocalBoundsOf(parent);
             }
 
@@ -474,8 +489,8 @@ namespace VirtualOffice.Core
                 float deskTopY = 0.615f;
 
                 SpawnModel(parent, desk, deskAnchor, 180f);
-                SpawnModel(parent, screen, deskAnchor + new Vector3(0, deskTopY, -0.15f), 180f);
-                SpawnModel(parent, chair, deskAnchor + new Vector3(0, 0, 0.75f), 0f); // chairDesk는 기본 방향이 이미 책상 쪽(0도)
+                SpawnModel(parent, screen, deskAnchor + new Vector3(0, deskTopY, -0.15f), 180f, tint: DarkBezel);
+                SpawnModel(parent, chair, deskAnchor + new Vector3(0, 0, 0.42f), 0f); // chairDesk는 기본 방향이 이미 책상 쪽(0도) — 책상에 더 가깝게
                 if (cabinet != null) SpawnModel(parent, cabinet, deskAnchor + new Vector3(1.0f, 0f, 0.1f), 90f);
 
                 return LocalBoundsOf(parent);
@@ -578,6 +593,61 @@ namespace VirtualOffice.Core
             return new Bounds(new Vector3(0, 0.25f, 0), new Vector3(0.65f, 0.5f, 0.55f));
         }
 
+        private static Bounds BuildTriDeskCluster(Transform parent)
+        {
+            var desk = UseRealComposedModels ? LoadModel("desk") : null;
+            var chair = UseRealComposedModels ? LoadModel("chairDesk") : null;
+            var screen = UseRealComposedModels ? LoadModel("computerScreen") : null;
+            var keyboard = UseRealComposedModels ? LoadModel("computerKeyboard") : null;
+
+            if (desk != null && chair != null)
+            {
+                // T자 배치: 위쪽 가로줄에 PC 책상 2개(모니터+키보드), 그 아래 세로줄기에 책상
+                // 1개(의자만, 맞은편을 보고 앉음) — "책상 3개, PC는 2개(위/옆)" 요청을 이렇게 해석함
+                SpawnDeskUnit(parent, new Vector3(-0.7f, 0, -0.55f), 0f, desk, chair, screen, keyboard);
+                SpawnDeskUnit(parent, new Vector3(0.7f, 0, -0.55f), 0f, desk, chair, screen, keyboard);
+                SpawnDeskUnit(parent, new Vector3(0f, 0, 0.65f), 180f, desk, chair, null, null);
+
+                return LocalBoundsOf(parent);
+            }
+
+            // 실제 모델이 없으면 간단한 프리미티브 3세트로 대체
+            SpawnPart(parent, new Vector3(-0.7f, 0.72f, -0.55f), new Vector3(1.0f, 0.05f, 0.5f), WoodColor);
+            SpawnPart(parent, new Vector3(0.7f, 0.72f, -0.55f), new Vector3(1.0f, 0.05f, 0.5f), WoodColor);
+            SpawnPart(parent, new Vector3(0f, 0.72f, 0.65f), new Vector3(1.0f, 0.05f, 0.5f), WoodColor);
+            SpawnChair(parent, new Vector3(-0.7f, 0, 0f), 180f);
+            SpawnChair(parent, new Vector3(0.7f, 0, 0f), 180f);
+            SpawnChair(parent, new Vector3(0f, 0, 0.3f), 0f);
+
+            return new Bounds(new Vector3(0, 0.5f, 0), new Vector3(2.6f, 1.4f, 1.6f));
+        }
+
+        /// BuildDesks에서 검증된 "책상+모니터+키보드+의자 한 세트" 배치를 하나의 강체로 보고,
+        /// unitOrigin/unitYaw만큼 통째로 옮기고 돌려서 여러 세트를 자유 배치할 수 있게 한다.
+        private static void SpawnDeskUnit(Transform parent, Vector3 unitOrigin, float unitYaw,
+            GameObject desk, GameObject chair, GameObject screen, GameObject keyboard)
+        {
+            Vector3 deskAnchor = new Vector3(0.572f, 0f, 0.196f);
+            float deskTopY = 0.615f;
+            Vector3 screenOffset = deskAnchor + new Vector3(0, deskTopY, -0.15f);
+            Vector3 keyboardOffset = deskAnchor + new Vector3(0, deskTopY, 0.1f);
+            Vector3 chairOffset = deskAnchor + new Vector3(0, 0, 0.42f);
+            const float baseYaw = 180f;
+
+            SpawnModel(parent, desk, unitOrigin + RotateXZ(deskAnchor, unitYaw), baseYaw + unitYaw);
+            if (screen != null) SpawnModel(parent, screen, unitOrigin + RotateXZ(screenOffset, unitYaw), baseYaw + unitYaw, tint: DarkBezel);
+            if (keyboard != null) SpawnModel(parent, keyboard, unitOrigin + RotateXZ(keyboardOffset, unitYaw), baseYaw + unitYaw, tint: DarkBezel);
+            SpawnModel(parent, chair, unitOrigin + RotateXZ(chairOffset, unitYaw), unitYaw);
+        }
+
+        private static Vector3 RotateXZ(Vector3 v, float yawDegrees)
+        {
+            float rad = yawDegrees * Mathf.Deg2Rad;
+            float x = v.x * Mathf.Cos(rad) + v.z * Mathf.Sin(rad);
+            float z = -v.x * Mathf.Sin(rad) + v.z * Mathf.Cos(rad);
+            return new Vector3(x, v.y, z);
+        }
+
         private static Bounds BuildDefault(Transform parent)
         {
             SpawnPart(parent, new Vector3(0, 0.25f, 0), new Vector3(0.5f, 0.5f, 0.5f), WoodMid);
@@ -611,7 +681,7 @@ namespace VirtualOffice.Core
             return Resources.Load<GameObject>(name);
         }
 
-        private static GameObject SpawnModel(Transform parent, GameObject prefab, Vector3 localPos, float yaw = 0f, Vector3? scale = null)
+        private static GameObject SpawnModel(Transform parent, GameObject prefab, Vector3 localPos, float yaw = 0f, Vector3? scale = null, Color? tint = null)
         {
             var go = Object.Instantiate(prefab, parent);
             go.transform.localPosition = localPos;
@@ -622,6 +692,22 @@ namespace VirtualOffice.Core
             foreach (var col in go.GetComponentsInChildren<Collider>()) Destroy(col);
 
             FixUrpShader(go);
+
+            // 원본 재질 색이 조명에 따라 카키색 등으로 어색하게 보일 때 강제로 단색 덧칠
+            // (예: 모니터·키보드는 항상 검정으로 통일)
+            if (tint.HasValue)
+            {
+                foreach (var renderer in go.GetComponentsInChildren<Renderer>())
+                {
+                    var mats = renderer.materials;
+                    foreach (var mat in mats)
+                    {
+                        if (mat.HasProperty("_BaseMap")) mat.SetTexture("_BaseMap", null);
+                        if (mat.HasProperty("_BaseColor")) mat.SetColor("_BaseColor", tint.Value);
+                    }
+                    renderer.materials = mats;
+                }
+            }
 
             return go;
         }
