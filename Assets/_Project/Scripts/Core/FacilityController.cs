@@ -303,14 +303,17 @@ namespace VirtualOffice.Core
                 Vector3 tableAnchor = new Vector3(-0.673f * tableScaleXZ, 0f, -0.358f * tableScaleXZ);
                 SpawnModel(parent, table, tableAnchor, 0f, tableScale);
 
-                // chair 모델도 피벗이 발 한쪽 모서리에 있어(실측: Center 0.16/0.368/0.16,
-                // Size 0.32/0.736/0.32 — 즉 XZ 기준 (0,0)~(0.32,0.32) 모서리에 피벗). 의자마다
-                // 회전각(yaw)이 달라 이 오프셋이 도는 방향으로 같이 돌아가므로, 각도별로 회전시켜
-                // 보정해야 전부 같은 자리(링 위치 c)에 중심이 오게 된다.
+                // chair/computerScreen/computerKeyboard 전부 피벗이 모서리에 있다(각 모델의
+                // Center == Size/2, 즉 로컬 (0,0,0)~(Size) 모서리 피벗). 회전각(yaw)마다 이
+                // 오프셋이 같이 돌아가므로, 각도별로 돌려서 빼줘야 전부 같은 자리에 중심이 온다.
                 Vector2 chairPivotOffset = new Vector2(0.16f, 0.16f);
+                Vector2 screenPivotOffset = new Vector2(0.3141504f, 0.0832f);
+                Vector2 keyboardPivotOffset = new Vector2(0.22576f, 0.0945536f);
 
                 var screen = LoadModel("computerScreen");
+                var keyboard = LoadModel("computerKeyboard");
                 float screenRx = rx * 0.55f, screenRz = rz * 0.55f;
+                float keyboardRx = rx * 0.75f, keyboardRz = rz * 0.75f;
                 float tableTopY = 0.5227744f; // table 실측 높이(Size.Y) — Y는 스케일 안 해서 그대로
 
                 for (int i = 0; i < chairCount; i++)
@@ -321,19 +324,20 @@ namespace VirtualOffice.Core
                     // (+180을 빼서 테이블 쪽을 보도록 뒤집음)
                     float yaw = Mathf.Atan2(c.x, c.z) * Mathf.Rad2Deg;
 
-                    float yawRad = yaw * Mathf.Deg2Rad;
-                    float rotatedX = chairPivotOffset.x * Mathf.Cos(yawRad) + chairPivotOffset.y * Mathf.Sin(yawRad);
-                    float rotatedZ = -chairPivotOffset.x * Mathf.Sin(yawRad) + chairPivotOffset.y * Mathf.Cos(yawRad);
-                    var spawnPos = c - new Vector3(rotatedX, 0, rotatedZ);
+                    SpawnModel(parent, chair, c - RotatePivotOffset(chairPivotOffset, yaw), yaw);
 
-                    SpawnModel(parent, chair, spawnPos, yaw);
-
-                    // 각 좌석 앞 테이블 위에 PC 모니터 — 화면이 바깥(의자 쪽)을 보도록 chair와
-                    // 반대 방향(+180)으로 놓는다(미검증 — 화면이 반대로 보이면 이 +180을 빼면 됨)
+                    // 각 좌석 앞 테이블 위에 PC 모니터+키보드 — 화면이 바깥(의자 쪽)을 보도록
+                    // chair와 반대 방향(+180)으로 놓는다(미검증 — 반대로 보이면 +180 제거)
+                    float deviceYaw = yaw + 180f;
                     if (screen != null)
                     {
-                        var screenPos = new Vector3(Mathf.Sin(ang) * screenRx, tableTopY, Mathf.Cos(ang) * screenRz);
-                        SpawnModel(parent, screen, screenPos, yaw + 180f);
+                        var screenCenter = new Vector3(Mathf.Sin(ang) * screenRx, tableTopY, Mathf.Cos(ang) * screenRz);
+                        SpawnModel(parent, screen, screenCenter - RotatePivotOffset(screenPivotOffset, deviceYaw), deviceYaw);
+                    }
+                    if (keyboard != null)
+                    {
+                        var keyboardCenter = new Vector3(Mathf.Sin(ang) * keyboardRx, tableTopY, Mathf.Cos(ang) * keyboardRz);
+                        SpawnModel(parent, keyboard, keyboardCenter - RotatePivotOffset(keyboardPivotOffset, deviceYaw), deviceYaw);
                     }
                 }
 
@@ -640,6 +644,17 @@ namespace VirtualOffice.Core
 
             Vector3 localCenter = parent.InverseTransformPoint(world.center);
             return new Bounds(localCenter, world.size);
+        }
+
+        /// 모서리 피벗 모델을 각도(yaw)만큼 회전시켜 배치할 때, "피벗→실제 중심" 오프셋이
+        /// 같이 회전하는 만큼을 계산한다. 반환값을 목표 중심 위치에서 빼면 피벗(스폰 위치)이
+        /// 나오고, 그 지점에 스폰하면 모델의 실제 중심이 목표 위치에 오게 된다.
+        private static Vector3 RotatePivotOffset(Vector2 pivotOffsetXZ, float yawDegrees)
+        {
+            float yawRad = yawDegrees * Mathf.Deg2Rad;
+            float rotatedX = pivotOffsetXZ.x * Mathf.Cos(yawRad) + pivotOffsetXZ.y * Mathf.Sin(yawRad);
+            float rotatedZ = -pivotOffsetXZ.x * Mathf.Sin(yawRad) + pivotOffsetXZ.y * Mathf.Cos(yawRad);
+            return new Vector3(rotatedX, 0, rotatedZ);
         }
 
         // ---- low-level helpers ----
