@@ -288,21 +288,29 @@ namespace VirtualOffice.Core
             var chair = UseRealComposedModels ? LoadModel("chair") : null;
 
             const int chairCount = 6;
-            float rx = 1.0f, rz = 0.65f;
+            // 의자 수만큼 PC를 올릴 수 있도록 테이블을 1.4배 넓히고, 의자 링도 그만큼 바깥으로
+            float tableScaleXZ = 1.4f;
+            float rx = 1.3f, rz = 0.85f;
 
             if (table != null && chair != null)
             {
                 // table 모델도 피벗이 중앙이 아니라 구석에 있어(실측: Center 0.673/0.261/0.358,
                 // Size 1.346/0.523/0.716) — 회전 없이 배치하므로 중심을 그대로 원점 반대 방향으로
-                // 밀어서 테이블 실제 중심이 그룹 원점(의자 링의 중심)에 오도록 보정한다.
-                Vector3 tableAnchor = new Vector3(-0.673f, 0f, -0.358f);
-                SpawnModel(parent, table, tableAnchor);
+                // 밀어서 테이블 실제 중심이 그룹 원점(의자 링의 중심)에 오도록 보정한다. 테이블을
+                // 확대했으니 피벗 오프셋도 같은 비율로 커진다(스케일은 자식 좌표에 곱해지므로).
+                Vector3 tableScale = new Vector3(tableScaleXZ, 1f, tableScaleXZ);
+                Vector3 tableAnchor = new Vector3(-0.673f * tableScaleXZ, 0f, -0.358f * tableScaleXZ);
+                SpawnModel(parent, table, tableAnchor, 0f, tableScale);
 
                 // chair 모델도 피벗이 발 한쪽 모서리에 있어(실측: Center 0.16/0.368/0.16,
                 // Size 0.32/0.736/0.32 — 즉 XZ 기준 (0,0)~(0.32,0.32) 모서리에 피벗). 의자마다
                 // 회전각(yaw)이 달라 이 오프셋이 도는 방향으로 같이 돌아가므로, 각도별로 회전시켜
                 // 보정해야 전부 같은 자리(링 위치 c)에 중심이 오게 된다.
                 Vector2 chairPivotOffset = new Vector2(0.16f, 0.16f);
+
+                var screen = LoadModel("computerScreen");
+                float screenRx = rx * 0.55f, screenRz = rz * 0.55f;
+                float tableTopY = 0.5227744f; // table 실측 높이(Size.Y) — Y는 스케일 안 해서 그대로
 
                 for (int i = 0; i < chairCount; i++)
                 {
@@ -318,6 +326,14 @@ namespace VirtualOffice.Core
                     var spawnPos = c - new Vector3(rotatedX, 0, rotatedZ);
 
                     SpawnModel(parent, chair, spawnPos, yaw);
+
+                    // 각 좌석 앞 테이블 위에 PC 모니터 — 화면이 바깥(의자 쪽)을 보도록 chair와
+                    // 반대 방향(+180)으로 놓는다(미검증 — 화면이 반대로 보이면 이 +180을 빼면 됨)
+                    if (screen != null)
+                    {
+                        var screenPos = new Vector3(Mathf.Sin(ang) * screenRx, tableTopY, Mathf.Cos(ang) * screenRz);
+                        SpawnModel(parent, screen, screenPos, yaw + 180f);
+                    }
                 }
 
                 return LocalBoundsOf(parent);
@@ -567,12 +583,12 @@ namespace VirtualOffice.Core
             return Resources.Load<GameObject>(name);
         }
 
-        private static GameObject SpawnModel(Transform parent, GameObject prefab, Vector3 localPos, float yaw = 0f)
+        private static GameObject SpawnModel(Transform parent, GameObject prefab, Vector3 localPos, float yaw = 0f, Vector3? scale = null)
         {
             var go = Object.Instantiate(prefab, parent);
             go.transform.localPosition = localPos;
             go.transform.localRotation = Quaternion.Euler(0f, yaw, 0f);
-            go.transform.localScale = Vector3.one;
+            go.transform.localScale = scale ?? Vector3.one;
 
             // 그룹 전체에 콜라이더 하나만 쓰는 기존 규칙과 맞추려 프리팹에 딸려온 콜라이더는 제거
             foreach (var col in go.GetComponentsInChildren<Collider>()) Destroy(col);
