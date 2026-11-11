@@ -11,19 +11,21 @@ namespace VirtualOffice.Core
     /// 수 없다(CLAUDE.md 세션 제약 — 가구 에셋은 사용자가 로컬 에디터에서 받아
     /// `Assets/_Project/Art/Furniture/Resources/`에 넣어야 함). 그래서 각 가구
     /// 종류마다 "Resources.Load로 실제 모델(Kenney Furniture Kit)을 먼저 찾아보고,
-    /// 없으면 프리미티브 조합으로 대체"하는 구조로 짰다 — 사용자가 에셋을 더 받아
-    /// 넣을 때마다 코드 수정 없이 자동으로 실제 모델로 바뀐다. Desks/ExecDesk/Table/
-    /// Shelf/Tv/Sofa/Crate는 실제 모델 연결됨, Printer/Whiteboard/Cctv/CallBell/
-    /// Counter/DocSet/SnackCounter/Cooler는 해당 팩에 없어 프리미티브 그대로.
+    /// 없으면 프리미티브 조합으로 대체"하는 구조로 짰다. 단일 모델(Shelf/Tv/Sofa)은
+    /// 항상 실제 모델을 쓰고, 여러 부품을 하드코딩된 상대 위치로 조합하는 가구
+    /// (Desks/ExecDesk/Table/Crate)는 모델 피벗·실제 치수가 프리미티브 가정과 달라
+    /// 스폰 지점과 겹치는 문제가 확인되어 `UseRealComposedModels`로 임시 꺼둠(검증되면
+    /// true로). Printer/Whiteboard/Cctv/CallBell/Counter/DocSet/SnackCounter/Cooler는
+    /// 해당 팩에 없어 프리미티브 그대로.
     public class FacilityController : MonoBehaviour
     {
         public static FacilityController Instance { get; private set; }
 
-        /// 실제 Kenney 모델을 켜고 끄는 스위치. 모델 피벗·실제 치수가 프리미티브
-        /// 가정과 달라 스폰 지점과 겹치거나 비율이 안 맞는 문제가 확인되어, 모델별로
-        /// 하나씩 검증하기 전까지 임시로 꺼둔다(false = 항상 프리미티브 사용). 코드는
-        /// 그대로 두고 이 값만 true로 바꾸면 다시 실제 모델을 쓴다.
-        private const bool UseRealFurnitureModels = false;
+        /// 여러 부품(책상+의자+모니터처럼)을 하드코딩된 상대 위치로 조합하는 가구만
+        /// 모델 피벗/실제 치수가 달라 스폰 지점과 겹치거나 비율이 안 맞는 문제가 확인돼
+        /// 임시로 꺼둔다(false = 해당 가구만 프리미티브 사용). 단일 모델(책장·TV·소파)은
+        /// 이 문제와 무관해 항상 실제 모델을 쓴다. 조합형도 치수 검증되면 true로.
+        private const bool UseRealComposedModels = false;
 
         private static readonly Color WoodColor = new Color(0.62f, 0.47f, 0.30f);
         private static readonly Color WoodMid = new Color(0.52f, 0.39f, 0.25f);
@@ -233,9 +235,9 @@ namespace VirtualOffice.Core
 
         private static Bounds BuildDesks(Transform parent)
         {
-            var desk = LoadModel("desk");
-            var chair = LoadModel("chairDesk");
-            var screen = LoadModel("computerScreen");
+            var desk = UseRealComposedModels ? LoadModel("desk") : null;
+            var chair = UseRealComposedModels ? LoadModel("chairDesk") : null;
+            var screen = UseRealComposedModels ? LoadModel("computerScreen") : null;
 
             if (desk != null && chair != null && screen != null)
             {
@@ -275,8 +277,8 @@ namespace VirtualOffice.Core
 
         private static Bounds BuildTable(Transform parent)
         {
-            var table = LoadModel("table");
-            var chair = LoadModel("chair");
+            var table = UseRealComposedModels ? LoadModel("table") : null;
+            var chair = UseRealComposedModels ? LoadModel("chair") : null;
 
             const int chairCount = 6;
             float rx = 1.0f, rz = 0.65f;
@@ -370,8 +372,8 @@ namespace VirtualOffice.Core
 
         private static Bounds BuildCrate(Transform parent)
         {
-            var closedBox = LoadModel("cardboardBoxClosed");
-            var openBox = LoadModel("cardboardBoxOpen");
+            var closedBox = UseRealComposedModels ? LoadModel("cardboardBoxClosed") : null;
+            var openBox = UseRealComposedModels ? LoadModel("cardboardBoxOpen") : null;
 
             if (closedBox != null && openBox != null)
             {
@@ -413,10 +415,10 @@ namespace VirtualOffice.Core
 
         private static Bounds BuildExecDesk(Transform parent)
         {
-            var desk = LoadModel("desk");
-            var chair = LoadModel("chairDesk");
-            var screen = LoadModel("computerScreen");
-            var cabinet = LoadModel("cabinetTelevision"); // 낮은 목재 캐비닛 모양이라 서류장 대용으로 재사용
+            var desk = UseRealComposedModels ? LoadModel("desk") : null;
+            var chair = UseRealComposedModels ? LoadModel("chairDesk") : null;
+            var screen = UseRealComposedModels ? LoadModel("computerScreen") : null;
+            var cabinet = UseRealComposedModels ? LoadModel("cabinetTelevision") : null; // 낮은 목재 캐비닛 모양이라 서류장 대용으로 재사용
 
             if (desk != null && chair != null && screen != null)
             {
@@ -531,8 +533,6 @@ namespace VirtualOffice.Core
 
         private static GameObject LoadModel(string name)
         {
-            if (!UseRealFurnitureModels) return null; // 위 스위치가 꺼져 있으면 항상 프리미티브로
-
             // Assets/_Project/Art/Furniture/Resources/<name>.fbx — "Resources" 바로 밑에
             // 모델이 있으므로 접두사 없이 이름만으로 찾는다(Unity Resources.Load 규칙).
             return Resources.Load<GameObject>(name);
