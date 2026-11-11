@@ -288,9 +288,10 @@ namespace VirtualOffice.Core
             var chair = UseRealComposedModels ? LoadModel("chair") : null;
 
             const int chairCount = 6;
-            // 의자 수만큼 PC를 올릴 수 있도록 테이블을 1.4배 넓히고, 의자 링도 그만큼 바깥으로
+            // 의자 수만큼 PC를 올릴 수 있도록 테이블을 1.4배 넓힘. 의자는 책상(테이블)에 바짝
+            // 붙도록 테이블 가장자리(반경 0.942/0.501)에 거의 닿는 수준으로 링을 좁게 잡는다.
             float tableScaleXZ = 1.4f;
-            float rx = 1.3f, rz = 0.85f;
+            float rx = 1.05f, rz = 0.62f;
 
             if (table != null && chair != null)
             {
