@@ -19,6 +19,12 @@ namespace VirtualOffice.Core
     {
         public static FacilityController Instance { get; private set; }
 
+        /// 실제 Kenney 모델을 켜고 끄는 스위치. 모델 피벗·실제 치수가 프리미티브
+        /// 가정과 달라 스폰 지점과 겹치거나 비율이 안 맞는 문제가 확인되어, 모델별로
+        /// 하나씩 검증하기 전까지 임시로 꺼둔다(false = 항상 프리미티브 사용). 코드는
+        /// 그대로 두고 이 값만 true로 바꾸면 다시 실제 모델을 쓴다.
+        private const bool UseRealFurnitureModels = false;
+
         private static readonly Color WoodColor = new Color(0.62f, 0.47f, 0.30f);
         private static readonly Color WoodMid = new Color(0.52f, 0.39f, 0.25f);
         private static readonly Color WoodDark = new Color(0.40f, 0.30f, 0.20f);
@@ -525,6 +531,8 @@ namespace VirtualOffice.Core
 
         private static GameObject LoadModel(string name)
         {
+            if (!UseRealFurnitureModels) return null; // 위 스위치가 꺼져 있으면 항상 프리미티브로
+
             // Assets/_Project/Art/Furniture/Resources/<name>.fbx — "Resources" 바로 밑에
             // 모델이 있으므로 접두사 없이 이름만으로 찾는다(Unity Resources.Load 규칙).
             return Resources.Load<GameObject>(name);
