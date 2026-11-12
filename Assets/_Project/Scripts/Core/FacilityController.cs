@@ -138,7 +138,9 @@ namespace VirtualOffice.Core
             floor.name = "Floor";
             floor.transform.SetParent(root.transform, false);
             floor.transform.localScale = new Vector3(w / 10f, 1f, d / 10f);
-            ApplyColor(floor, Lighten(room.accentColor, 0.65f), 0.15f);
+            var floorTex = LoadFloorTexture();
+            if (floorTex != null) ApplyTexturedMaterial(floor, floorTex, new Vector2(w / 1.5f, d / 1.5f), Color.white, 0.1f);
+            else ApplyColor(floor, Lighten(room.accentColor, 0.65f), 0.15f);
 
             var ceiling = GameObject.CreatePrimitive(PrimitiveType.Plane);
             ceiling.name = "Ceiling";
@@ -148,10 +150,10 @@ namespace VirtualOffice.Core
             ceiling.transform.localScale = new Vector3(w / 10f, 1f, d / 10f);
             ApplyColor(ceiling, new Color(0.96f, 0.95f, 0.90f), 0.08f);
 
-            BuildWall(root.transform, new Vector3(0, h / 2f, -d / 2f), new Vector3(w, h, 0.1f), room.accentColor);
-            BuildWall(root.transform, new Vector3(0, h / 2f, d / 2f), new Vector3(w, h, 0.1f), room.accentColor);
-            BuildWall(root.transform, new Vector3(-w / 2f, h / 2f, 0), new Vector3(0.1f, h, d), room.accentColor);
-            BuildWall(root.transform, new Vector3(w / 2f, h / 2f, 0), new Vector3(0.1f, h, d), room.accentColor);
+            BuildWall(root.transform, new Vector3(0, h / 2f, -d / 2f), new Vector3(w, h, 0.1f), room.accentColor, w, h);
+            BuildWall(root.transform, new Vector3(0, h / 2f, d / 2f), new Vector3(w, h, 0.1f), room.accentColor, w, h);
+            BuildWall(root.transform, new Vector3(-w / 2f, h / 2f, 0), new Vector3(0.1f, h, d), room.accentColor, d, h);
+            BuildWall(root.transform, new Vector3(w / 2f, h / 2f, 0), new Vector3(0.1f, h, d), room.accentColor, d, h);
 
             BuildRoomLight(root.transform, h);
 
@@ -163,14 +165,17 @@ namespace VirtualOffice.Core
             return root;
         }
 
-        private static void BuildWall(Transform parent, Vector3 localPos, Vector3 scale, Color roomColor)
+        private static void BuildWall(Transform parent, Vector3 localPos, Vector3 scale, Color roomColor, float wallWidth, float wallHeight)
         {
             var wall = GameObject.CreatePrimitive(PrimitiveType.Cube);
             wall.name = "Wall";
             wall.transform.SetParent(parent, false);
             wall.transform.localPosition = localPos;
             wall.transform.localScale = scale;
-            ApplyColor(wall, Lighten(roomColor, 0.3f), 0.1f);
+
+            var wallTex = LoadWallTexture();
+            if (wallTex != null) ApplyTexturedMaterial(wall, wallTex, new Vector2(wallWidth / 2f, wallHeight / 2f), Color.white, 0.08f);
+            else ApplyColor(wall, Lighten(roomColor, 0.3f), 0.1f);
         }
 
         private static void BuildRoomLight(Transform parent, float ceilingHeight)
@@ -792,6 +797,47 @@ namespace VirtualOffice.Core
 
             ApplyColor(go, color, smoothness, metallic);
             return go;
+        }
+
+        private static Texture2D _wallTexture;
+        private static Texture2D _floorTexture;
+        private static bool _wallTextureChecked, _floorTextureChecked;
+
+        /// 사용자가 받아온 실제 텍스처(Resources/wall_plaster, Resources/wood_floor) — 없으면
+        /// null을 반환해 기존 단색(ApplyColor) 방식으로 자동 대체된다(가구 모델과 같은 패턴).
+        private static Texture2D LoadWallTexture()
+        {
+            if (!_wallTextureChecked) { _wallTexture = Resources.Load<Texture2D>("wall_plaster"); _wallTextureChecked = true; }
+            return _wallTexture;
+        }
+
+        private static Texture2D LoadFloorTexture()
+        {
+            if (!_floorTextureChecked) { _floorTexture = Resources.Load<Texture2D>("wood_floor"); _floorTextureChecked = true; }
+            return _floorTexture;
+        }
+
+        /// 텍스처가 있는 면(벽·바닥)에 쓰는 머티리얼 — tiling은 "실제 가로/세로 길이 ÷ 타일당
+        /// 대략적인 미터 수"로 넘겨서, 방 크기가 달라져도 널빤지/벽돌 하나하나의 크기가
+        /// 늘어나 보이지 않고 일정하게 반복되도록 한다.
+        private static void ApplyTexturedMaterial(GameObject go, Texture2D tex, Vector2 tiling, Color tint, float smoothness = 0.15f, float metallic = 0f)
+        {
+            var renderer = go.GetComponent<Renderer>();
+            if (renderer == null) return;
+
+            Shader shader = Shader.Find("Universal Render Pipeline/Lit");
+            if (shader == null) shader = Shader.Find("Standard");
+
+            var mat = new Material(shader);
+            if (mat.HasProperty("_BaseMap")) mat.SetTexture("_BaseMap", tex);
+            if (mat.HasProperty("_MainTex")) mat.SetTexture("_MainTex", tex);
+            mat.mainTextureScale = tiling;
+            if (mat.HasProperty("_BaseColor")) mat.SetColor("_BaseColor", tint);
+            else mat.color = tint;
+            if (mat.HasProperty("_Smoothness")) mat.SetFloat("_Smoothness", smoothness);
+            if (mat.HasProperty("_Glossiness")) mat.SetFloat("_Glossiness", smoothness);
+            if (mat.HasProperty("_Metallic")) mat.SetFloat("_Metallic", metallic);
+            renderer.material = mat;
         }
 
         private static void ApplyColor(GameObject go, Color color, float smoothness = 0.2f, float metallic = 0f)
