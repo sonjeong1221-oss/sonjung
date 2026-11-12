@@ -1,0 +1,11 @@
+<!--
+  WebGL/IL2CPP 빌드는 "코드에서 직접 참조하지 않는 클래스는 안 쓴다"고 보고 자동으로
+  빼버리는 최적화(managed stripping)를 한다. MeshCollider 등은 코드에서 직접 안
+  쓰고 Kenney FBX 모델(Resources 폴더)에만 붙어 있어서 이 분석에 안 걸려 빠졌었고,
+  런타임에 그 모델을 Instantiate()할 때 "Can't add component because class
+  'MeshCollider' doesn't exist!" 에러로 실패해 가구 전체가 안 보이는 원인이었다.
+  UnityEngine.PhysicsModule 전체를 보존 대상으로 지정해 해결.
+-->
+<linker>
+  <assembly fullname="UnityEngine.PhysicsModule" preserve="all" />
+</linker>
