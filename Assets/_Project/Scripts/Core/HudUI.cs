@@ -102,7 +102,7 @@ namespace VirtualOffice.Core
             t.alignment = anchor;
             t.color = Color.white;
             t.text = text;
-            t.enableWordWrapping = true;
+            t.textWrappingMode = TextWrappingModes.Normal;
             return t;
         }
 

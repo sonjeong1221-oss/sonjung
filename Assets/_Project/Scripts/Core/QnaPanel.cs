@@ -119,7 +119,7 @@ namespace VirtualOffice.Core
             answerRt.pivot = new Vector2(0.5f, 1f);
             answerRt.offsetMin = new Vector2(20, answerRt.offsetMin.y);
             answerRt.offsetMax = new Vector2(-20, answerRt.offsetMax.y);
-            _answerText.enableWordWrapping = true;
+            _answerText.textWrappingMode = TextWrappingModes.Normal;
             _answerText.overflowMode = TextOverflowModes.Overflow;
 
             var fieldPanel = CreatePanel(panel.transform, "InputFieldBg", new Color(1f, 1f, 1f, 0.9f));
