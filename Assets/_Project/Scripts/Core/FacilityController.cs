@@ -289,18 +289,19 @@ namespace VirtualOffice.Core
             var table = UseRealComposedModels ? LoadModel("table") : null;
             var chair = UseRealComposedModels ? LoadModel("chair") : null;
 
-            const int chairCount = 6;
             // 모니터·키보드까지 올리니 상대적으로 테이블이 작아 보여서 더 크게(1.9배) 키움.
-            // 의자는 책상(테이블)에 바짝 붙도록 테이블 가장자리(반경 1.279/0.680)에 가깝게 잡는다.
             float tableScaleXZ = 1.9f;
-            float rx = 1.45f, rz = 0.80f;
+            // 긴 테이블 좌우 두 줄로만 배치(모서리엔 의자 없음) — 테이블 긴 축(X, 실측
+            // 1.346*1.9/2=1.279 절반길이) 위 3자리 × 양옆 2줄 = 6석
+            float[] seatXs = { -0.85f, 0f, 0.85f };
+            float rowZ = 0.85f; // 테이블 가장자리(반폭 0.716*1.9/2=0.680) 바로 바깥
 
             if (table != null && chair != null)
             {
                 // table 모델도 피벗이 중앙이 아니라 구석에 있어(실측: Center 0.673/0.261/0.358,
                 // Size 1.346/0.523/0.716) — 회전 없이 배치하므로 중심을 그대로 원점 반대 방향으로
-                // 밀어서 테이블 실제 중심이 그룹 원점(의자 링의 중심)에 오도록 보정한다. 테이블을
-                // 확대했으니 피벗 오프셋도 같은 비율로 커진다(스케일은 자식 좌표에 곱해지므로).
+                // 밀어서 테이블 실제 중심이 그룹 원점에 오도록 보정한다. 테이블을 확대했으니
+                // 피벗 오프셋도 같은 비율로 커진다(스케일은 자식 좌표에 곱해지므로).
                 Vector3 tableScale = new Vector3(tableScaleXZ, 1f, tableScaleXZ);
                 Vector3 tableAnchor = new Vector3(-0.673f * tableScaleXZ, 0f, -0.358f * tableScaleXZ);
                 SpawnModel(parent, table, tableAnchor, 0f, tableScale);
@@ -314,32 +315,31 @@ namespace VirtualOffice.Core
 
                 var screen = LoadModel("computerScreen");
                 var keyboard = LoadModel("computerKeyboard");
-                float screenRx = rx * 0.55f, screenRz = rz * 0.55f;
-                float keyboardRx = rx * 0.75f, keyboardRz = rz * 0.75f;
+                float screenZ = 0.45f;   // 테이블 안쪽(화면)
+                float keyboardZ = 0.62f; // 테이블 가장자리 쪽(키보드, 의자에 더 가까움)
                 float tableTopY = 0.5227744f; // table 실측 높이(Size.Y) — Y는 스케일 안 해서 그대로
 
-                for (int i = 0; i < chairCount; i++)
+                foreach (var rowSign in new[] { 1f, -1f }) // +Z 줄, -Z 줄 — 두 줄이 서로 마주봄
                 {
-                    float ang = i * Mathf.PI * 2f / chairCount;
-                    var c = new Vector3(Mathf.Sin(ang) * rx, 0, Mathf.Cos(ang) * rz);
-                    // chair 모델의 "정면"이 기본적으로 우리가 가정한 반대쪽을 보고 있어
-                    // (+180을 빼서 테이블 쪽을 보도록 뒤집음)
-                    float yaw = Mathf.Atan2(c.x, c.z) * Mathf.Rad2Deg;
+                    // rowSign>0(+Z 줄)은 yaw 0일 때 -Z(안쪽, 맞은편 줄)를 바라봄, rowSign<0은 180도
+                    float yaw = rowSign > 0f ? 0f : 180f;
+                    float deviceYaw = yaw + 180f; // 모니터·키보드는 의자 반대(바깥)를 보도록
 
-                    SpawnModel(parent, chair, c - RotatePivotOffset(chairPivotOffset, yaw), yaw);
+                    foreach (var x in seatXs)
+                    {
+                        var chairPos = new Vector3(x, 0, rowSign * rowZ);
+                        SpawnModel(parent, chair, chairPos - RotatePivotOffset(chairPivotOffset, yaw), yaw);
 
-                    // 각 좌석 앞 테이블 위에 PC 모니터+키보드 — 화면이 바깥(의자 쪽)을 보도록
-                    // chair와 반대 방향(+180)으로 놓는다(미검증 — 반대로 보이면 +180 제거)
-                    float deviceYaw = yaw + 180f;
-                    if (screen != null)
-                    {
-                        var screenCenter = new Vector3(Mathf.Sin(ang) * screenRx, tableTopY, Mathf.Cos(ang) * screenRz);
-                        SpawnModel(parent, screen, screenCenter - RotatePivotOffset(screenPivotOffset, deviceYaw), deviceYaw, tint: DarkBezel);
-                    }
-                    if (keyboard != null)
-                    {
-                        var keyboardCenter = new Vector3(Mathf.Sin(ang) * keyboardRx, tableTopY, Mathf.Cos(ang) * keyboardRz);
-                        SpawnModel(parent, keyboard, keyboardCenter - RotatePivotOffset(keyboardPivotOffset, deviceYaw), deviceYaw, tint: DarkBezel);
+                        if (screen != null)
+                        {
+                            var screenPos = new Vector3(x, tableTopY, rowSign * screenZ);
+                            SpawnModel(parent, screen, screenPos - RotatePivotOffset(screenPivotOffset, deviceYaw), deviceYaw, tint: DarkBezel);
+                        }
+                        if (keyboard != null)
+                        {
+                            var keyboardPos = new Vector3(x, tableTopY, rowSign * keyboardZ);
+                            SpawnModel(parent, keyboard, keyboardPos - RotatePivotOffset(keyboardPivotOffset, deviceYaw), deviceYaw, tint: DarkBezel);
+                        }
                     }
                 }
 
@@ -357,10 +357,12 @@ namespace VirtualOffice.Core
                 }
             }
 
-            for (int i = 0; i < chairCount; i++)
+            const int fallbackChairCount = 6;
+            float fallbackRx = 1.0f, fallbackRz = 0.65f;
+            for (int i = 0; i < fallbackChairCount; i++)
             {
-                float ang = i * Mathf.PI * 2f / chairCount;
-                var c = new Vector3(Mathf.Sin(ang) * rx, 0, Mathf.Cos(ang) * rz);
+                float ang = i * Mathf.PI * 2f / fallbackChairCount;
+                var c = new Vector3(Mathf.Sin(ang) * fallbackRx, 0, Mathf.Cos(ang) * fallbackRz);
                 float yaw = Mathf.Atan2(c.x, c.z) * Mathf.Rad2Deg + 180f;
                 SpawnChair(parent, c, yaw);
             }
