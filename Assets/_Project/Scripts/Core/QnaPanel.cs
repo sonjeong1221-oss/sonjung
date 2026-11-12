@@ -54,6 +54,14 @@ namespace VirtualOffice.Core
 
         public void SetVisible(bool visible) => gameObject.SetActive(visible);
 
+        /// 2D 평면도(RoomFloorPlanUI)에서 가구 아이콘을 클릭했을 때 그 가구 이름을
+        /// 질문처럼 그대로 물어보기 위한 진입점 — 입력창에 직접 타이핑한 것과 동일하게 처리.
+        public void AskAbout(string label)
+        {
+            _inputField.text = label;
+            Submit();
+        }
+
         private void Submit()
         {
             string question = _inputField.text;

@@ -1,17 +1,23 @@
 # 프로젝트: 가상 업무 인계인수 공간 (Unity)
 
-Windows용 1인칭 싱글 사용자 가상 오피스. 신규 담당자가 역할별 공간을 둘러보며 인계인수
-자료·체크리스트·업무 안내를 확인하는 것이 목적이다. 모든 세션은 이 파일과
+Windows/WebGL용 싱글 사용자 가상 오피스. 신규 담당자가 역할별 공간의 2D 평면도를 보며
+인계인수 자료·체크리스트·업무 안내를 확인하는 것이 목적이다. 모든 세션은 이 파일과
 `Documents/개발명세서.md`, `Documents/개발진행현황.md`를 먼저 읽고 작업을 시작한다.
+
+**2026-11-12 방향 전환**: 원래 1인칭 3D 워크스루로 시작했으나, 실제 Kenney 3D 모델을
+붙이는 과정에서 품질·작업 난이도 문제가 반복되자 사용자 요청으로 **2D 평면도 기반으로
+전면 교체**했다(아래 "핵심 흐름" 참고). 3D 전용 스크립트(`FirstPersonController`,
+`InteractionSystem`, `FacilityController`의 3D 그레이박스 로직)는 삭제하지 않고 남겨뒀지만
+더 이상 `Bootstrap`에서 생성하지 않는다 — 혼동하지 말 것.
 
 ## 개발 환경
 - Unity 6000.x LTS
 - URP (Universal Render Pipeline)
-- Windows 64-bit 빌드
-- 1인칭 시점 (카메라만 존재, 손 모델 없음)
+- Windows 64-bit 빌드 + WebGL 빌드(브라우저 공유용, 둘 다 지원)
+- 2D 평면도 기반 — 3D 1인칭 워크스루 아님(위 "2026-11-12 방향 전환" 참고)
 - 아바타 없음 — 자기 자신도, 다른 NPC도 등장하지 않는다
 - 싱글 사용자 — 네트워킹/멀티플레이 코드 금지
-- 저사양 PC에서도 원활하게 실행되는 최적화된 3D 환경이 최우선 기준
+- 저사양 PC에서도 원활하게 실행되는 최적화된 환경이 최우선 기준
 
 ## 디자인 방향
 - 따뜻한 우드톤, 베이지·웜그레이 팔레트
@@ -40,27 +46,35 @@ Windows용 1인칭 싱글 사용자 가상 오피스. 신규 담당자가 역할
   실제 아트는 Asset Store 구매 에셋 또는 사용자가 준비한 리소스를 입히는 방식으로 진행한다.
 
 ## 핵심 흐름
-허브(평면도/미니맵)에서 방을 클릭 → 그 방으로 텔레포트 → 1인칭으로 둘러보며 비품에 "E"로
-상호작용 + 자유 질문하면 그 방의 업무·비품 정보로 답변. 걸어서 전체 복도를 가로지르는 구조가
-아니라는 점이 핵심 — 자세한 흐름은 `Documents/개발명세서.md` 4·5절 참고.
+허브(평면도)에서 방을 클릭 → 그 방의 **2D 평면도 화면**(RoomFloorPlanUI)으로 전환 → 위에서
+본 가구 아이콘들이 배치되어 있고, 아이콘을 누르면 그 가구 이름을 그대로 Q&A에 질문해서
+그 방·현재 심사단계·일자 기준 업무 내용을 보여줌. 3D로 걸어다니지 않는다 — 자세한 흐름은
+`Documents/개발명세서.md` 4·5절(갱신 예정) 참고.
+
+편집(가구 아이콘 추가/삭제/위치 조정)은 운영자(개발자) 전용 기능으로 다음 단계에서 추가
+예정 — 최종 사용자(신규 담당자)는 보기 전용.
 
 ## 아키텍처 핵심
 `Assets/_Project/Scripts/Core/`
 - `GameManager` — 싱글턴, 현재 상태(Phase·Day) 보유, 부팅 시퀀스
-- `RoomData` (ScriptableObject) — 방 ID·치수·비품 리스트·심사 단계별 일자 업무(`schedules`)·텔레포트
-  스폰 지점·평면도 위치(`planRect`) 정의. 심사 단계(기초조사/본심사/수정본검토/견본검수)는 `ReviewPhase`.
-- `RoomCatalog` — 7개 방의 실제 데이터(2D 프로토타입에서 포팅)를 런타임에 `RoomData` 인스턴스로
+- `RoomData` (ScriptableObject) — 방 ID·치수·비품 리스트(`furniture`, 2D 평면도 좌표로도 재사용)·
+  심사 단계별 일자 업무(`schedules`)·평면도 위치(`planRect`) 정의. 심사 단계(기초조사/본심사/
+  수정본검토/견본검수)는 `ReviewPhase`.
+- `RoomCatalog` — 7개 방(+세부 파티션 포함 10개)의 실제 데이터를 런타임에 `RoomData` 인스턴스로
   생성. 지금은 `.asset` 파일 대신 이 방식을 쓴다(세션 제약 — 스크립트 GUID 미확정)
-- `FacilityController` — 허브↔방 전환의 중심. 지금은 `SceneLoader`(정식 설계, Additive 서브씬) 대신
-  한 씬 안에서 그레이박스(큐브)를 즉석 생성·파괴하는 방식으로 구현되어 있음(개발명세서 12절)
-- `HudUI` / `HubUI` / `QnaPanel` — HUD·허브 평면도·Q&A 패널을 코드로 직접 생성(프리팹/씬 없이)
-- `IInteractable` / `InteractionSystem` — 화면 중앙 Raycast 기반 1인칭 상호작용
-- `FirstPersonController` — CharacterController + 신규 Input System
+- `HudUI` / `HubUI` / `QnaPanel` / `RoomFloorPlanUI` — HUD·허브 평면도·Q&A 패널·방 상세 2D
+  평면도를 코드로 직접 생성(프리팹/씬 없이). 전부 TextMeshPro + Pretendard SDF 폰트 사용
+  (`Resources/Pretendard-Regular SDF` — Unity 기본 내장 폰트는 한글이 없어 WebGL에서 빈 칸으로
+  보이는 문제가 있었음)
 - `SaveSystem` — `Application.persistentDataPath`에 JSON으로 진행 상태(Phase·Day) 저장/복원
 - `Bootstrap` — 위 전부를 순서대로 생성하는 진입점. 빈 씬에 이 컴포넌트 하나만 있으면 된다
   (`Documents/SampleRoom_설정가이드.md`)
+- **(더 이상 안 씀, 삭제는 안 함)** `FirstPersonController`, `InteractionSystem`,
+  `IInteractable`, `SimpleInteractable`, `FacilityController`의 3D 그레이박스/Kenney 가구
+  스폰 로직 — 3D 1인칭 체험이 2D 평면도로 교체되며 Bootstrap에서 더 이상 생성하지 않음
 
-Q&A는 오프라인 키워드 매칭으로 **확정**(네트워킹 금지 원칙상 LLM API 미사용). 지금 구현은 "대략적
-1차 프로토타입"이고 정식 설계(Additive 서브씬·`.asset` 데이터·실제 가구 에셋·베이크드 라이팅)와의
-차이는 개발명세서 12절에 표로 정리되어 있다. 전체 공간 구성(7개 방), 비주얼 레퍼런스 스펙, 로드맵도
-`Documents/개발명세서.md` 참고.
+Q&A는 오프라인 키워드 매칭으로 **확정**(네트워킹 금지 원칙상 LLM API 미사용). WebGL 빌드 시
+`Assets/link.xml`(MeshCollider 등 Physics 모듈 스트리핑 방지)이 필요했던 건 3D 가구 모델
+Instantiate 때문이었는데, 2D 전환 이후로는 불필요해질 수 있음(제거 여부는 추후 판단).
+전체 공간 구성, 비주얼 레퍼런스 스펙, 로드맵은 `Documents/개발명세서.md` 참고(2D 전환 반영
+갱신 필요).
