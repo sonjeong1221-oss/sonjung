@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -9,14 +10,15 @@ namespace VirtualOffice.Core
     /// 방을 고르는 화면 + 심사 단계·일자 탭. 실제 미니맵(Top-down 카메라 +
     /// RenderTexture)은 다음 단계에서 교체 — 이번 "대략적" 구현은 버튼판으로
     /// 같은 동작(둘러보기 전 평면도에서 방 선택)을 보여준다(개발명세서 4·10절).
-    /// 카드·버튼은 전부 둥근 모서리 + 그림자(UiStyle)로 통일한다.
+    /// 카드·버튼은 전부 둥근 모서리 + 그림자(UiStyle)로 통일한다. 텍스트는
+    /// TextMeshPro + Pretendard SDF 폰트(한글 지원, HudUI.cs 참고).
     public class HubUI : MonoBehaviour
     {
         public static HubUI Instance { get; private set; }
 
         public event Action<string> RoomSelected;
 
-        private Font _font;
+        private TMP_FontAsset _font;
         private List<RoomData> _rooms;
         private readonly Dictionary<ReviewPhase, Button> _phaseButtons = new Dictionary<ReviewPhase, Button>();
         private readonly Dictionary<CampDay, Button> _dayButtons = new Dictionary<CampDay, Button>();
@@ -38,7 +40,8 @@ namespace VirtualOffice.Core
         {
             Instance = this;
             _rooms = rooms;
-            _font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            _font = Resources.Load<TMP_FontAsset>("Pretendard-Regular SDF");
+            if (_font == null) _font = TMP_Settings.defaultFontAsset;
 
             var canvasGo = new GameObject("HubCanvas", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
             canvasGo.transform.SetParent(transform, false);
@@ -61,7 +64,7 @@ namespace VirtualOffice.Core
 
         private void BuildTitle(Transform parent)
         {
-            var title = CreateText(parent, "Title", "가상 업무 인계인수 공간 — 둘러볼 공간을 선택하세요", 26, TextAnchor.MiddleCenter);
+            var title = CreateText(parent, "Title", "가상 업무 인계인수 공간 — 둘러볼 공간을 선택하세요", 26, TextAlignmentOptions.Center);
             Anchor(title.GetComponent<RectTransform>(), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0, -60), new Vector2(1000, 50));
         }
 
@@ -139,11 +142,11 @@ namespace VirtualOffice.Core
 
         // ---- small UI helpers (self-contained, same style as HudUI) ----
 
-        private Text CreateText(Transform parent, string name, string text, int size, TextAnchor anchor)
+        private TMP_Text CreateText(Transform parent, string name, string text, int size, TextAlignmentOptions anchor)
         {
-            var go = new GameObject(name, typeof(RectTransform), typeof(Text));
+            var go = new GameObject(name, typeof(RectTransform), typeof(TextMeshProUGUI));
             go.transform.SetParent(parent, false);
-            var t = go.GetComponent<Text>();
+            var t = go.GetComponent<TextMeshProUGUI>();
             t.font = _font;
             t.fontSize = size;
             t.alignment = anchor;
@@ -191,7 +194,7 @@ namespace VirtualOffice.Core
             button.targetGraphic = card;
             if (onClick != null) button.onClick.AddListener(() => onClick());
 
-            var text = CreateText(card.transform, "Label", label, 15, TextAnchor.MiddleCenter);
+            var text = CreateText(card.transform, "Label", label, 15, TextAlignmentOptions.Center);
             FillParent(text.GetComponent<RectTransform>());
 
             return button;

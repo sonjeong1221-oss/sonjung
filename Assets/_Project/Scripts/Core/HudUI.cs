@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem.UI;
@@ -12,24 +13,27 @@ namespace VirtualOffice.Core
     /// 선택이다. 레퍼런스 이미지의 레이아웃(좌상단 홈+토스트, 좌하단 조작키 카드,
     /// 하단 중앙 아이콘 4개)을 그대로 따른다(개발명세서 10절). 미니맵은 이번 "대략적"
     /// 구현에서는 실제 Top-down 카메라 대신 평면도 버튼판(HubUI)으로 대체한다.
+    /// 텍스트는 TextMeshPro + Pretendard SDF 폰트 사용(레거시 UI Text의 기본
+    /// 내장 폰트는 한글이 없어 WebGL 빌드에서 한글이 전부 빈 칸으로 보이는 문제가
+    /// 있었음 — Resources/Pretendard-Regular SDF로 교체).
     public class HudUI : MonoBehaviour
     {
         public static HudUI Instance { get; private set; }
 
         public event Action HomeClicked;
 
-        private Text _toastText;
+        private TMP_Text _toastText;
         private CanvasGroup _toastGroup;
         private Coroutine _toastRoutine;
 
-        private Text _promptText;
-        private Text _phaseDayLabel;
-        private Font _font;
+        private TMP_Text _promptText;
+        private TMP_Text _phaseDayLabel;
+        private TMP_FontAsset _font;
 
         private static readonly Color ShadowColor = new Color(0f, 0f, 0f, 0.30f);
         private static readonly Vector2 ShadowOffset = new Vector2(3f, -3f);
 
-        public Text PromptLabel => _promptText;
+        public TMP_Text PromptLabel => _promptText;
 
         public static HudUI Create()
         {
@@ -48,7 +52,8 @@ namespace VirtualOffice.Core
             Instance = this;
             DontDestroyOnLoad(gameObject);
 
-            _font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            _font = Resources.Load<TMP_FontAsset>("Pretendard-Regular SDF");
+            if (_font == null) _font = TMP_Settings.defaultFontAsset; // 폰트 에셋이 Resources에 없을 때의 임시 대체(영어만 표시됨)
 
             EnsureEventSystem();
             var canvas = BuildCanvasRoot();
@@ -86,18 +91,18 @@ namespace VirtualOffice.Core
 
         // ---- building blocks ----
 
-        private Text CreateText(Transform parent, string name, string text, int size, TextAnchor anchor)
+        private TMP_Text CreateText(Transform parent, string name, string text, int size, TextAlignmentOptions anchor)
         {
-            var go = new GameObject(name, typeof(RectTransform), typeof(Text));
+            var go = new GameObject(name, typeof(RectTransform), typeof(TextMeshProUGUI));
             go.transform.SetParent(parent, false);
 
-            var t = go.GetComponent<Text>();
+            var t = go.GetComponent<TextMeshProUGUI>();
             t.font = _font;
             t.fontSize = size;
             t.alignment = anchor;
             t.color = Color.white;
             t.text = text;
-            t.horizontalOverflow = HorizontalWrapMode.Wrap;
+            t.enableWordWrapping = true;
             return t;
         }
 
@@ -133,7 +138,7 @@ namespace VirtualOffice.Core
             button.targetGraphic = card;
             if (onClick != null) button.onClick.AddListener(() => onClick());
 
-            var text = CreateText(card.transform, "Label", label, 16, TextAnchor.MiddleCenter);
+            var text = CreateText(card.transform, "Label", label, 16, TextAlignmentOptions.Center);
             FillParent(text.GetComponent<RectTransform>());
 
             return button;
@@ -169,7 +174,7 @@ namespace VirtualOffice.Core
             _toastGroup = toastPanel.gameObject.AddComponent<CanvasGroup>();
             _toastGroup.alpha = 0f;
 
-            _toastText = CreateText(toastPanel.transform, "ToastText", "", 15, TextAnchor.MiddleLeft);
+            _toastText = CreateText(toastPanel.transform, "ToastText", "", 15, TextAlignmentOptions.Left);
             var textRt = _toastText.GetComponent<RectTransform>();
             FillParent(textRt);
             textRt.offsetMin = new Vector2(14, 6);
@@ -183,7 +188,7 @@ namespace VirtualOffice.Core
 
             var text = CreateText(panel.transform, "Text",
                 "W A S D   이동\n마우스   시점 회전\nE   상호작용\nESC   메뉴 열기",
-                14, TextAnchor.UpperLeft);
+                14, TextAlignmentOptions.TopLeft);
             var textRt = text.GetComponent<RectTransform>();
             FillParent(textRt);
             textRt.offsetMin = new Vector2(14, 10);
@@ -208,7 +213,7 @@ namespace VirtualOffice.Core
 
         private void BuildPromptLabel(Transform canvas)
         {
-            _promptText = CreateText(canvas, "InteractPrompt", "", 18, TextAnchor.MiddleCenter);
+            _promptText = CreateText(canvas, "InteractPrompt", "", 18, TextAlignmentOptions.Center);
             _promptText.gameObject.SetActive(false);
             var rt = _promptText.GetComponent<RectTransform>();
             Anchor(rt, new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 220), new Vector2(560, 36));
@@ -216,7 +221,7 @@ namespace VirtualOffice.Core
 
         private void BuildPhaseDayIndicator(Transform canvas)
         {
-            _phaseDayLabel = CreateText(canvas, "PhaseDayLabel", "", 16, TextAnchor.MiddleCenter);
+            _phaseDayLabel = CreateText(canvas, "PhaseDayLabel", "", 16, TextAlignmentOptions.Center);
             var rt = _phaseDayLabel.GetComponent<RectTransform>();
             Anchor(rt, new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -24), new Vector2(500, 30));
             RefreshPhaseDayLabel();

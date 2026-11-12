@@ -1,13 +1,12 @@
+using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
-using UnityEngine.UI;
 
 namespace VirtualOffice.Core
 {
     /// 1인칭 화면 중앙 기준 Raycast로 상호작용 가능한 오브젝트를 찾고,
     /// "E" 키 입력 시 해당 오브젝트의 Interact()를 호출한다.
-    /// 프롬프트는 UGUI Text(레거시) 사용 — 절차적으로(코드로) 만든 HUD와 맞추기 위해
-    /// TextMeshPro 폰트 에셋 임포트 없이도 바로 동작하게 했다(HudUI.cs 참고).
+    /// 프롬프트는 TextMeshPro 사용(한글 지원 — Pretendard SDF 폰트, HudUI.cs 참고).
     [RequireComponent(typeof(Camera))]
     public class InteractionSystem : MonoBehaviour
     {
@@ -16,13 +15,13 @@ namespace VirtualOffice.Core
         [SerializeField] private LayerMask interactableMask = ~0;
 
         [Header("UI (선택 — 인스펙터로 연결하거나 SetPromptLabel로 코드에서 연결)")]
-        [SerializeField] private Text promptLabel;
+        [SerializeField] private TMP_Text promptLabel;
 
         private Camera _camera;
         private FirstPersonController _owner;
         private IInteractable _current;
 
-        public void SetPromptLabel(Text label)
+        public void SetPromptLabel(TMP_Text label)
         {
             promptLabel = label;
             RefreshPrompt();

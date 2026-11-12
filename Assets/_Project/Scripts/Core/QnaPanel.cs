@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -11,14 +12,15 @@ namespace VirtualOffice.Core
     /// 개발 환경의 "싱글 사용자 — 네트워킹/멀티플레이 코드 금지" 원칙에 따라 LLM API
     /// 호출 없이 전부 로컬 키워드 매칭으로 동작한다 — 이게 이전에 "결정 필요 사항"에
     /// 있던 Q&A 구현 방식(오프라인 vs API)을 사실상 확정한다(개발명세서 5·9절).
+    /// 텍스트·입력창은 TextMeshPro + Pretendard SDF 폰트(한글 지원, HudUI.cs 참고).
     public class QnaPanel : MonoBehaviour
     {
         public static QnaPanel Instance { get; private set; }
 
         private RoomData _currentRoom;
-        private InputField _inputField;
-        private Text _answerText;
-        private Font _font;
+        private TMP_InputField _inputField;
+        private TMP_Text _answerText;
+        private TMP_FontAsset _font;
 
         public static QnaPanel Create()
         {
@@ -36,7 +38,8 @@ namespace VirtualOffice.Core
 
             Instance = this;
             DontDestroyOnLoad(gameObject);
-            _font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            _font = Resources.Load<TMP_FontAsset>("Pretendard-Regular SDF");
+            if (_font == null) _font = TMP_Settings.defaultFontAsset;
             BuildUI();
             SetVisible(false);
         }
@@ -110,14 +113,14 @@ namespace VirtualOffice.Core
             var panelRt = panel.GetComponent<RectTransform>();
             Anchor(panelRt, new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0, 360), new Vector2(760, 260));
 
-            _answerText = CreateText(panel.transform, "Answer", "", 15, TextAnchor.UpperLeft);
+            _answerText = CreateText(panel.transform, "Answer", "", 15, TextAlignmentOptions.TopLeft);
             var answerRt = _answerText.GetComponent<RectTransform>();
             Anchor(answerRt, new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(0, -16), new Vector2(0, 170));
             answerRt.pivot = new Vector2(0.5f, 1f);
             answerRt.offsetMin = new Vector2(20, answerRt.offsetMin.y);
             answerRt.offsetMax = new Vector2(-20, answerRt.offsetMax.y);
-            _answerText.horizontalOverflow = HorizontalWrapMode.Wrap;
-            _answerText.verticalOverflow = VerticalWrapMode.Overflow;
+            _answerText.enableWordWrapping = true;
+            _answerText.overflowMode = TextOverflowModes.Overflow;
 
             var fieldPanel = CreatePanel(panel.transform, "InputFieldBg", new Color(1f, 1f, 1f, 0.9f));
             var fieldRt = fieldPanel.GetComponent<RectTransform>();
@@ -126,15 +129,15 @@ namespace VirtualOffice.Core
             fieldRt.offsetMin = new Vector2(20, fieldRt.offsetMin.y);
             fieldRt.offsetMax = new Vector2(-160, fieldRt.offsetMax.y);
 
-            var fieldText = CreateText(fieldPanel.transform, "Text", "", 15, TextAnchor.MiddleLeft);
+            var fieldText = CreateText(fieldPanel.transform, "Text", "", 15, TextAlignmentOptions.Left);
             fieldText.color = Color.black;
             FillParent(fieldText.GetComponent<RectTransform>());
 
-            var placeholder = CreateText(fieldPanel.transform, "Placeholder", "질문을 입력하세요 (예: 오늘 뭐 해야 돼?)", 15, TextAnchor.MiddleLeft);
+            var placeholder = CreateText(fieldPanel.transform, "Placeholder", "질문을 입력하세요 (예: 오늘 뭐 해야 돼?)", 15, TextAlignmentOptions.Left);
             placeholder.color = new Color(0, 0, 0, 0.4f);
             FillParent(placeholder.GetComponent<RectTransform>());
 
-            _inputField = fieldPanel.gameObject.AddComponent<InputField>();
+            _inputField = fieldPanel.gameObject.AddComponent<TMP_InputField>();
             _inputField.textComponent = fieldText;
             _inputField.placeholder = placeholder;
             _inputField.onSubmit.AddListener(_ => Submit());
@@ -145,11 +148,11 @@ namespace VirtualOffice.Core
             submitRt.pivot = new Vector2(1f, 0f);
         }
 
-        private Text CreateText(Transform parent, string name, string text, int size, TextAnchor anchor)
+        private TMP_Text CreateText(Transform parent, string name, string text, int size, TextAlignmentOptions anchor)
         {
-            var go = new GameObject(name, typeof(RectTransform), typeof(Text));
+            var go = new GameObject(name, typeof(RectTransform), typeof(TextMeshProUGUI));
             go.transform.SetParent(parent, false);
-            var t = go.GetComponent<Text>();
+            var t = go.GetComponent<TextMeshProUGUI>();
             t.font = _font;
             t.fontSize = size;
             t.alignment = anchor;
@@ -176,7 +179,7 @@ namespace VirtualOffice.Core
             button.targetGraphic = panel;
             if (onClick != null) button.onClick.AddListener(() => onClick());
 
-            var text = CreateText(panel.transform, "Label", label, 15, TextAnchor.MiddleCenter);
+            var text = CreateText(panel.transform, "Label", label, 15, TextAlignmentOptions.Center);
             text.color = Color.black;
             FillParent(text.GetComponent<RectTransform>());
 
