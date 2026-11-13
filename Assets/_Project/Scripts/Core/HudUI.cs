@@ -187,7 +187,7 @@ namespace VirtualOffice.Core
                 new Vector2(0, 0), new Vector2(0, 0), new Vector2(150, 120), new Vector2(260, 150));
 
             var text = CreateText(panel.transform, "Text",
-                "W A S D   이동\n마우스   시점 회전\nE   상호작용\nESC   메뉴 열기",
+                "마우스 클릭   가구 선택해서 질문하기\nESC   홈으로 나가기",
                 14, TextAlignmentOptions.TopLeft);
             var textRt = text.GetComponent<RectTransform>();
             FillParent(textRt);

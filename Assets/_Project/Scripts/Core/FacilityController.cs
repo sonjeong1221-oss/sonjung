@@ -165,6 +165,38 @@ namespace VirtualOffice.Core
             return root;
         }
 
+        /// 1인칭 그레이박스(BuildGreyboxRoom) 대신, 방을 비스듬히 내려다보는 고정 카메라
+        /// (RoomDiorama)로 보여줄 때 쓰는 버전. 벽 4개를 다 지으면 카메라에 가까운 두 벽이
+        /// 시야를 가리므로, 카메라와 먼 쪽 두 벽(-X, -Z)만 배경으로 남긴다 — RoomCatalog
+        /// 데이터상 TV/화이트보드가 대부분 -Z 벽에 있어 이 조합이면 항상 노출된다.
+        /// BuildGreyboxRoom은 1인칭 걸어다니기 전용으로 그대로 남겨두고(원칙 #1·#2) 건드리지
+        /// 않았다 — 바닥/천장 없음·조명·가구 스폰 로직만 그대로 재사용.
+        public static GameObject BuildDioramaRoom(RoomData room)
+        {
+            var root = new GameObject("Room_" + room.roomId);
+            float w = room.size.x, h = room.size.y, d = room.size.z;
+
+            var floor = GameObject.CreatePrimitive(PrimitiveType.Plane);
+            floor.name = "Floor";
+            floor.transform.SetParent(root.transform, false);
+            floor.transform.localScale = new Vector3(w / 10f, 1f, d / 10f);
+            var floorTex = LoadFloorTexture();
+            if (floorTex != null) ApplyTexturedMaterial(floor, floorTex, new Vector2(w / 1.5f, d / 1.5f), Color.white, 0.1f);
+            else ApplyColor(floor, Lighten(room.accentColor, 0.65f), 0.15f);
+
+            BuildWall(root.transform, new Vector3(0, h / 2f, -d / 2f), new Vector3(w, h, 0.1f), room.accentColor, w, h);
+            BuildWall(root.transform, new Vector3(-w / 2f, h / 2f, 0), new Vector3(0.1f, h, d), room.accentColor, d, h);
+
+            BuildRoomLight(root.transform, h);
+
+            foreach (var item in room.furniture)
+            {
+                BuildFurniturePiece(root.transform, item);
+            }
+
+            return root;
+        }
+
         private static void BuildWall(Transform parent, Vector3 localPos, Vector3 scale, Color roomColor, float wallWidth, float wallHeight)
         {
             var wall = GameObject.CreatePrimitive(PrimitiveType.Cube);
@@ -208,6 +240,10 @@ namespace VirtualOffice.Core
             var box = group.AddComponent<BoxCollider>();
             box.center = bounds.center;
             box.size = bounds.size;
+
+            // RoomDiorama의 마우스 클릭 Raycast가 어떤 가구인지 알아내는 용도 — E키 상호작용
+            // 여부(entry.interactable)와 무관하게 항상 붙인다(클릭 질문은 별개 기능).
+            group.AddComponent<FurnitureTag>().label = entry.label;
 
             if (entry.interactable)
             {
