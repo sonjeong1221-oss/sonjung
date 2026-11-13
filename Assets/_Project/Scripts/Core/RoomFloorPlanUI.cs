@@ -75,10 +75,7 @@ namespace VirtualOffice.Core
             var floor = CreateSquarePanel(_stage, "Floor", Lighten(room.accentColor, 0.75f));
             FillParent(floor.GetComponent<RectTransform>());
 
-            foreach (var item in room.furniture)
-            {
-                BuildIcon(item);
-            }
+            BuildIcons();
 
             HubUI.Instance?.SetVisible(false);
             QnaPanel.Instance?.SetRoom(room);
@@ -97,22 +94,115 @@ namespace VirtualOffice.Core
 
         // ---- furniture icons ----
 
-        private void BuildIcon(FurnitureEntry entry)
+        /// 가구마다 원하는 위치(3D 좌표를 정규화한 자리)를 먼저 계산해 두고, 서로 겹치면
+        /// 밀어내는 디클러터 패스를 거친 뒤에야 실제 아이콘을 만든다. 작은 방은 3D에서는
+        /// 멀리 떨어진 가구도 2D 평면도 픽셀로 옮기면 아이콘 두 개가 겹쳐 보이는 문제가
+        /// 있었음(외부지원팀실에서 확인) — 이를 고치기 위한 2단계 구조.
+        private class IconPlan
         {
-            // room.size 기준으로 로컬 좌표(x,z, 미터)를 0~1 정규화 — 허브 평면도와 같은 방식
-            float nx = Mathf.Clamp01(entry.localPosition.x / _currentRoom.size.x + 0.5f);
-            float nz = Mathf.Clamp01(entry.localPosition.z / _currentRoom.size.z + 0.5f);
-            float ny = 1f - nz; // 화면 위쪽이 방 안쪽(+Z)이 되도록 뒤집음
+            public FurnitureEntry entry;
+            public Vector2 pos; // 스테이지 중앙 기준 픽셀 오프셋
+            public Vector2 size;
+            public Color color;
+        }
 
-            (Vector2 size, Color color) = IconStyle(entry.kind);
+        private void BuildIcons()
+        {
+            float stageW = _stage.rect.width;
+            float stageH = _stage.rect.height;
 
-            var icon = CreateButton(_stage, "Icon_" + entry.kind, "", color,
+            var plans = new List<IconPlan>();
+            foreach (var item in _currentRoom.furniture)
+            {
+                // room.size 기준으로 로컬 좌표(x,z, 미터)를 0~1 정규화 — 허브 평면도와 같은 방식
+                float nx = Mathf.Clamp01(item.localPosition.x / _currentRoom.size.x + 0.5f);
+                float nz = Mathf.Clamp01(item.localPosition.z / _currentRoom.size.z + 0.5f);
+                float ny = 1f - nz; // 화면 위쪽이 방 안쪽(+Z)이 되도록 뒤집음
+
+                (Vector2 size, Color color) = IconStyle(item.kind);
+                var pos = new Vector2((nx - 0.5f) * stageW, (ny - 0.5f) * stageH);
+
+                plans.Add(new IconPlan { entry = item, pos = pos, size = size, color = color });
+            }
+
+            Declutter(plans, stageW, stageH);
+
+            foreach (var plan in plans)
+            {
+                BuildIcon(plan);
+            }
+        }
+
+        /// 겹치는 아이콘 쌍을 반복적으로 서로 밀어내는 단순 AABB 디클러터.
+        /// 라벨이 아이콘 아래에 붙으므로 세로 여유는 라벨 높이까지 포함해 계산한다.
+        private static void Declutter(List<IconPlan> plans, float stageW, float stageH)
+        {
+            const int passes = 12;
+            const float paddingX = 14f;
+            const float labelAllowance = 30f;
+
+            for (int pass = 0; pass < passes; pass++)
+            {
+                bool moved = false;
+                for (int i = 0; i < plans.Count; i++)
+                {
+                    for (int j = i + 1; j < plans.Count; j++)
+                    {
+                        var a = plans[i];
+                        var b = plans[j];
+
+                        float combinedHalfW = (a.size.x + b.size.x) / 2f + paddingX;
+                        float combinedHalfH = (a.size.y + b.size.y) / 2f + labelAllowance;
+
+                        float dx = b.pos.x - a.pos.x;
+                        float dy = b.pos.y - a.pos.y;
+
+                        float overlapX = combinedHalfW - Mathf.Abs(dx);
+                        float overlapY = combinedHalfH - Mathf.Abs(dy);
+
+                        if (overlapX > 0f && overlapY > 0f)
+                        {
+                            moved = true;
+                            if (overlapX < overlapY)
+                            {
+                                float push = overlapX / 2f + 0.5f;
+                                float dir = dx >= 0f ? 1f : -1f;
+                                a.pos.x -= push * dir;
+                                b.pos.x += push * dir;
+                            }
+                            else
+                            {
+                                float push = overlapY / 2f + 0.5f;
+                                float dir = dy >= 0f ? 1f : -1f;
+                                a.pos.y -= push * dir;
+                                b.pos.y += push * dir;
+                            }
+                        }
+                    }
+                }
+                if (!moved) break;
+            }
+
+            // 밀어낸 뒤 스테이지 바깥으로 나가지 않도록 다시 안쪽으로 당겨줌
+            foreach (var plan in plans)
+            {
+                float halfW = Mathf.Max(0f, stageW / 2f - plan.size.x / 2f - 10f);
+                float halfH = Mathf.Max(0f, stageH / 2f - plan.size.y / 2f - labelAllowance);
+                plan.pos.x = Mathf.Clamp(plan.pos.x, -halfW, halfW);
+                plan.pos.y = Mathf.Clamp(plan.pos.y, -halfH, halfH);
+            }
+        }
+
+        private void BuildIcon(IconPlan plan)
+        {
+            var entry = plan.entry;
+            var icon = CreateButton(_stage, "Icon_" + entry.kind, "", plan.color,
                 () => QnaPanel.Instance?.AskAbout(entry.label),
-                new Vector2(nx, ny), new Vector2(nx, ny), Vector2.zero, size);
+                new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), plan.pos, plan.size);
 
             var label = CreateText(icon.transform, "Label", entry.label, 11, TextAlignmentOptions.Center);
             var labelRt = label.GetComponent<RectTransform>();
-            Anchor(labelRt, new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0, -16), new Vector2(size.x + 40, 28));
+            Anchor(labelRt, new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0, -16), new Vector2(plan.size.x + 40, 28));
             label.color = Color.white;
             label.textWrappingMode = TextWrappingModes.Normal;
         }
