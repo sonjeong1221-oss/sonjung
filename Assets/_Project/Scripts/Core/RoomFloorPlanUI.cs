@@ -200,6 +200,8 @@ namespace VirtualOffice.Core
                 () => QnaPanel.Instance?.AskAbout(entry.label),
                 new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), plan.pos, plan.size);
 
+            DecorateIcon(icon.transform, entry.kind, plan.size, plan.color);
+
             var label = CreateText(icon.transform, "Label", entry.label, 11, TextAlignmentOptions.Center);
             var labelRt = label.GetComponent<RectTransform>();
             Anchor(labelRt, new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0, -16), new Vector2(plan.size.x + 40, 28));
@@ -230,6 +232,109 @@ namespace VirtualOffice.Core
                 case FurnitureKind.DocSet: return (new Vector2(30, 20), new Color(0.93f, 0.80f, 0.40f));
                 default: return (new Vector2(50, 50), new Color(0.5f, 0.5f, 0.5f));
             }
+        }
+
+        /// 라벨 텍스트만으로는 어떤 가구인지 한눈에 안 들어오니, 아이콘 색상 블록 위에
+        /// 그 가구를 위에서 봤을 때의 특징을 이모티콘 수준으로 단순화한 장식(모니터·
+        /// 서가 칸살·쿠션 선·상자 테이프 등)을 몇 개 겹쳐 그린다. 전부 기존 색 사각형/원
+        /// 프리미티브 조합이라 외부 이미지 에셋이 필요 없다.
+        private void DecorateIcon(Transform iconTransform, FurnitureKind kind, Vector2 size, Color baseColor)
+        {
+            Color light = Color.Lerp(baseColor, Color.white, 0.45f);
+            Color dark = Color.Lerp(baseColor, Color.black, 0.45f);
+
+            switch (kind)
+            {
+                case FurnitureKind.Table:
+                case FurnitureKind.Desks:
+                case FurnitureKind.ExecDesk:
+                case FurnitureKind.TriDeskCluster:
+                case FurnitureKind.SideTable:
+                case FurnitureKind.Counter:
+                case FurnitureKind.SnackCounter:
+                    CreateDecal(iconTransform, light, new Vector2(size.x - 14, size.y - 14), Vector2.zero);
+                    if (kind == FurnitureKind.Desks || kind == FurnitureKind.ExecDesk || kind == FurnitureKind.TriDeskCluster)
+                    {
+                        float mw = Mathf.Max(8f, size.x * 0.22f);
+                        float mh = Mathf.Max(8f, size.y * 0.22f);
+                        float ox = size.x * 0.18f;
+                        float oy = size.y * 0.20f;
+                        CreateDecal(iconTransform, dark, new Vector2(mw, mh), new Vector2(-ox, oy));
+                        CreateDecal(iconTransform, dark, new Vector2(mw, mh), new Vector2(ox, oy));
+                    }
+                    break;
+
+                case FurnitureKind.Shelf:
+                    for (int i = 0; i < 3; i++)
+                    {
+                        float y = Mathf.Lerp(-size.y * 0.3f, size.y * 0.3f, i / 2f);
+                        CreateDecal(iconTransform, light, new Vector2(size.x - 14, 4f), new Vector2(0, y));
+                    }
+                    break;
+
+                case FurnitureKind.Whiteboard:
+                    CreateDecal(iconTransform, new Color(0.55f, 0.55f, 0.55f), new Vector2(size.x * 0.9f, 3f), new Vector2(0, size.y * 0.3f));
+                    break;
+
+                case FurnitureKind.Tv:
+                    CreateDecal(iconTransform, new Color(0.16f, 0.46f, 0.62f), new Vector2(size.x - 10, size.y - 8), Vector2.zero);
+                    break;
+
+                case FurnitureKind.Printer:
+                    CreateDecal(iconTransform, light, new Vector2(size.x - 10, 6f), new Vector2(0, size.y * 0.25f));
+                    break;
+
+                case FurnitureKind.Crate:
+                    CreateDecal(iconTransform, dark, new Vector2(size.x * 0.9f, 4f), Vector2.zero, 45f);
+                    CreateDecal(iconTransform, dark, new Vector2(size.x * 0.9f, 4f), Vector2.zero, -45f);
+                    break;
+
+                case FurnitureKind.Sofa:
+                    CreateDecal(iconTransform, dark, new Vector2(2f, size.y - 12), new Vector2(-size.x * 0.18f, 0));
+                    CreateDecal(iconTransform, dark, new Vector2(2f, size.y - 12), new Vector2(size.x * 0.18f, 0));
+                    break;
+
+                case FurnitureKind.Cooler:
+                    CreateDecalCircle(iconTransform, light, size.x * 0.5f, new Vector2(0, size.y * 0.15f));
+                    break;
+
+                case FurnitureKind.Cctv:
+                    CreateDecalCircle(iconTransform, Color.white, size.x * 0.45f, Vector2.zero);
+                    break;
+
+                case FurnitureKind.CallBell:
+                    CreateDecalCircle(iconTransform, Color.white, size.x * 0.4f, Vector2.zero);
+                    break;
+
+                case FurnitureKind.DocSet:
+                    CreateDecal(iconTransform, light, new Vector2(size.x - 10, 5f), new Vector2(0, -4f));
+                    CreateDecal(iconTransform, light, new Vector2(size.x - 14, 5f), new Vector2(0, 4f));
+                    break;
+            }
+        }
+
+        private Image CreateDecal(Transform parent, Color color, Vector2 size, Vector2 pos, float rotation = 0f)
+        {
+            var go = new GameObject("Decal", typeof(RectTransform), typeof(Image));
+            go.transform.SetParent(parent, false);
+            var img = go.GetComponent<Image>();
+            img.color = color;
+            img.raycastTarget = false;
+            Anchor(img.GetComponent<RectTransform>(), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), pos, size);
+            if (rotation != 0f) img.rectTransform.localEulerAngles = new Vector3(0, 0, rotation);
+            return img;
+        }
+
+        private Image CreateDecalCircle(Transform parent, Color color, float diameter, Vector2 pos)
+        {
+            var go = new GameObject("Decal", typeof(RectTransform), typeof(Image));
+            go.transform.SetParent(parent, false);
+            var img = go.GetComponent<Image>();
+            img.sprite = UiStyle.Circle();
+            img.color = color;
+            img.raycastTarget = false;
+            Anchor(img.GetComponent<RectTransform>(), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), pos, new Vector2(diameter, diameter));
+            return img;
         }
 
         private static Color Lighten(Color c, float amount) => Color.Lerp(c, Color.white, amount);

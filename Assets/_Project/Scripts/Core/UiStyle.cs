@@ -9,6 +9,7 @@ namespace VirtualOffice.Core
     public static class UiStyle
     {
         private static Sprite _roundedSprite;
+        private static Sprite _circleSprite;
 
         public static Sprite RoundedPanel()
         {
@@ -34,6 +35,35 @@ namespace VirtualOffice.Core
             var border = new Vector4(radius, radius, radius, radius);
             _roundedSprite = Sprite.Create(tex, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), 100f, 0, SpriteMeshType.FullRect, border);
             return _roundedSprite;
+        }
+
+        /// 2D 평면도 가구 아이콘 안에 렌즈·버튼·병 모양 등 작은 원형 장식을 그릴 때 쓰는
+        /// 단색 원 스프라이트(안티에일리어싱된 가장자리, 9-슬라이스 아님 — 항상 정원으로 보임).
+        public static Sprite Circle()
+        {
+            if (_circleSprite != null) return _circleSprite;
+
+            const int size = 64;
+            var tex = new Texture2D(size, size, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Clamp };
+            var colors = new Color32[size * size];
+            float r = size / 2f;
+            var center = new Vector2(r, r);
+
+            for (int y = 0; y < size; y++)
+            {
+                for (int x = 0; x < size; x++)
+                {
+                    float dist = Vector2.Distance(new Vector2(x + 0.5f, y + 0.5f), center);
+                    float alpha = Mathf.Clamp01(r - dist);
+                    colors[y * size + x] = new Color(1f, 1f, 1f, alpha);
+                }
+            }
+
+            tex.SetPixels32(colors);
+            tex.Apply();
+
+            _circleSprite = Sprite.Create(tex, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), 100f);
+            return _circleSprite;
         }
 
         private static float CornerAlpha(int x, int y, int w, int h, int r)
